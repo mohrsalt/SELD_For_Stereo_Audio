@@ -47,7 +47,7 @@ class SELDModel(nn.Module):
         # Conv layers
         self.conv_blocks = nn.ModuleList()
         for conv_cnt in range(params['nb_conv_blocks']):
-            self.conv_blocks.append(ConvBlock(in_channels=params['nb_conv_filters'] if conv_cnt else 2,  # stereo
+            self.conv_blocks.append(ConvBlock(in_channels=params['nb_conv_filters'] if conv_cnt else 6,  # stereo
                                               out_channels=params['nb_conv_filters'],
                                               pool_size=(params['t_pool_size'][conv_cnt], params['f_pool_size'][conv_cnt]),
                                               dropout=params['dropout']))
@@ -105,7 +105,7 @@ class SELDModel(nn.Module):
         # audio feat - B x 2 x 251 x 64
         for conv_block in self.conv_blocks:
             audio_feat = conv_block(audio_feat)  # B x 64 x 50 x 2
-
+        
         audio_feat = audio_feat.transpose(1, 2).contiguous()  # B x 50 x 64 x 2
         audio_feat = audio_feat.view(audio_feat.shape[0], audio_feat.shape[1], -1).contiguous()  # B x 50 x 128
 

@@ -18,14 +18,23 @@ from data_generator import DataGenerator
 from torch.utils.data import DataLoader
 from extract_features import SELDFeatureExtractor
 import utils
-
+from tqdm import tqdm
+from AugMix import augment_and_mix
 
 def train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss):
 
     seld_model.train()
     train_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
 
-    for i, (input_features, labels) in enumerate(dev_train_iterator):
+    for i, (input_features, labels) in enumerate(dev_train_iterator):    
+        input_clone=input_features.clone()
+        label_clone=labels.clone()
+        
+        for j, (input_features_a, labels_a) in enumerate(zip(input_clone, label_clone)):
+            input_features_aug,labels_aug = augment_and_mix(input_features_a, labels_a)
+           
+            input_features = torch.cat((input_features, input_features_aug), dim=0)
+            labels = torch.cat((labels, labels_aug), dim=0)
         optimizer.zero_grad()
         labels = labels.to(device)
         # Handling modalities
@@ -114,7 +123,7 @@ def main():
     start_epoch = 0
     best_f_score = float('-inf')
 
-    for epoch in range(start_epoch, params['nb_epochs']):
+    for epoch in tqdm(range(start_epoch, params['nb_epochs'])):
         # ------------- Training -------------- #
         avg_train_loss = train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss)
         # -------------  Validation -------------- #

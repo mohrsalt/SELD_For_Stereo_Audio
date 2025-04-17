@@ -93,6 +93,7 @@ class SELDLossADPIT(nn.Module):
         num_permutation = 13
 
         # calculate ACCDOA loss for each target permutation and store them to list_loss_accdoa
+        
         output_accdoa = output.reshape(num_bs, num_frame, num_track, num_element, num_class)[:, :, :, 0:3, :]  # use accdoa + dist elements
         output_accdoa = output_accdoa.reshape(num_bs, num_frame, -1, num_class)  # the same shape of each target_accdoa permutation: (batch_size, frames, 3 (tracks) x 3 (act*x, act*y, dist), classes)
         # NOTE: these reshapes are from my temporal assumption, we need to check how to reshape output

@@ -11,12 +11,12 @@ Date: January 2025
 params = {
 
     # choose task
-    'modality': 'audio_visual',  # 'audio' or 'audio_visual'
+    'modality': 'audio',  # 'audio' or 'audio_visual'
     'net_type': 'SELDnet',
 
     # data params
-    'root_dir': '../DCASE2025_SELD_dataset',  # parent directory containing the audio, video and labels directory
-    'feat_dir': '../DCASE2025_SELD_dataset/features',  # store extracted features here
+    'root_dir': '/home/var/Desktop/Mohor/DCASE2025_seld_baseline/DCASE2025_SELD_dataset',  # parent directory containing the audio, video and labels directory
+    'feat_dir': '/home/var/Desktop/Mohor/DCASE2025_seld_baseline/DCASE2025_SELD_dataset/features',  # store extracted features here
 
     'log_dir': 'logs',  # save all logs here like loss and metrics
     'checkpoints_dir': 'checkpoints',  # save trained model checkpoints and config
@@ -39,7 +39,7 @@ params = {
     't_pool_size': [5, 1, 1],
     'dropout': 0.05,
 
-    'rnn_size': 128,
+    'rnn_size': 128, #128 original
     'nb_rnn_layers': 2,
 
     'nb_self_attn_layers': 2,
@@ -59,8 +59,8 @@ params = {
     'thresh_unify': 15,
 
     # training params
-    'nb_epochs': 200,
-    'batch_size': 256,
+    'nb_epochs': 300,
+    'batch_size': 64,
     'nb_workers': 0,
     'shuffle': True,
 

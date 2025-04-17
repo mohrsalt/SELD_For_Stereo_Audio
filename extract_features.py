@@ -24,8 +24,8 @@ import torch
 from torchvision.models import resnet50, ResNet50_Weights
 from tqdm import tqdm
 import utils
-
-
+from feature import LogmelDirCue_Extractor
+import numpy
 class SELDFeatureExtractor():
     def __init__(self, params):
         """
@@ -76,7 +76,7 @@ class SELDFeatureExtractor():
             raise ValueError("Split must be either 'dev' or 'eval'.")
 
         os.makedirs(os.path.join(self.feat_dir, f'stereo_{split}'), exist_ok=True)
-
+        feature_extractor = LogmelDirCue_Extractor().to(self.device)
         for audio_file in tqdm(audio_files, desc=f"Processing audio files ({split})", unit="file"):
             filename = os.path.splitext(os.path.basename(audio_file))[0] + '.pt'
             feature_path = os.path.join(self.feat_dir, f'stereo_{split}', filename)
@@ -85,9 +85,15 @@ class SELDFeatureExtractor():
                 continue
             # If the feature file doesn't exist, perform extraction
             audio, sr = utils.load_audio(audio_file, self.sampling_rate)
-            audio_feat = utils.extract_log_mel_spectrogram(audio, sr, self.n_fft, self.hop_length, self.win_length, self.nb_mels)
+            
+            audio_feat = feature_extractor(audio)
+            #audio_feat = utils.extract_log_mel_spectrogram(audio, sr, self.n_fft, self.hop_length, self.win_length, self.nb_mels)
+            
             audio_feat = torch.tensor(audio_feat, dtype=torch.float32)
+            
             torch.save(audio_feat, feature_path)
+            
+            
 
     def extract_video_features(self, split):
         """
@@ -162,7 +168,7 @@ class SELDFeatureExtractor():
             else:
                 processed_labels = utils.process_labels(label_data, self.nb_label_frames, self.nb_unique_classes)
             torch.save(processed_labels, label_path)
-
+            
 
 if __name__ == '__main__':
     # use this space to test if the SELDFeatureExtractor class works as expected.

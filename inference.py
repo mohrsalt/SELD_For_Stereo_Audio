@@ -11,6 +11,7 @@ import utils
 from model import SELDModel
 import pickle
 import os
+from parameters import params
 import torch
 from metrics import ComputeSELDResults
 from data_generator import DataGenerator
@@ -20,10 +21,10 @@ from extract_features import SELDFeatureExtractor
 
 def run_inference():
 
-    params_file = os.path.join(model_dir, 'config.pkl')
-    f = open(params_file, "rb")
-    params = pickle.load(f)
-
+    # params_file = os.path.join(model_dir, 'config.pkl')
+    # f = open(params_file, "rb")
+    # params = pickle.load(f)
+    # print(params)
     reference = model_dir.split('/')[-1]
     output_dir = os.path.join(params['output_dir'], reference)
     os.makedirs(params['output_dir'], exist_ok=True)
@@ -37,7 +38,7 @@ def run_inference():
     seld_model = SELDModel(params).to(device)
     model_ckpt = torch.load(os.path.join(model_dir, 'best_model.pth'), map_location=device, weights_only=False)
     seld_model.load_state_dict(model_ckpt['seld_model'])
-
+    print(params['root_dir'])
     seld_metrics = ComputeSELDResults(params=params, ref_files_folder=os.path.join(params['root_dir'], 'metadata_dev'))
 
     test_dataset = DataGenerator(params=params, mode='dev_test')
@@ -67,6 +68,6 @@ def run_inference():
 
 
 if __name__ == '__main__':
-    model_dir = "checkpoints/SELDnet_audio_multiACCDOA_20250330_170742"
+    model_dir = "/home/var/Desktop/Mohor/DCASE2025_seld_baseline/checkpoints/Baseline_DirectionalLogMel_NoDataAug"
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     run_inference()
