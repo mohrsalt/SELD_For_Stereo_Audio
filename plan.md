@@ -29,3 +29,14 @@ finetune
 
 
 
+Loss
+metrics
+model    D
+main
+training specs
+joint prediction
+ddp
+synth data
+dataaug
+acs
+mid-side stereo/left-right stereo

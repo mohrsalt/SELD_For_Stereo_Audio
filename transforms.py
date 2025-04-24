@@ -151,7 +151,7 @@ class SpecAugmentNp(DataAugmentNumpyBase):
         :param x: <(n_channels, n_time_steps, n_features)>: input spectrogram.
         :return: augmented spectrogram.
         """
-        print(x.ndim)
+        
         assert x.ndim == 3, 'Error: dimension of input spectrogram is not 3!'
         n_frames = x.shape[1]
         n_freqs = x.shape[2]
@@ -226,7 +226,7 @@ class RandomCutoutHoleNp(DataAugmentNumpyBase):
         :param x: <(n_channels, n_time_steps, n_features)>: input spectrogram.
         :return: augmented spectrogram.
         """
-        print(x.shape)
+        
         assert x.ndim == 3, 'Error: dimension of input spectrogram is not 3!'
         img_h = x.shape[-2]  # time frame dimension
         img_w = x.shape[-1]  # feature dimension

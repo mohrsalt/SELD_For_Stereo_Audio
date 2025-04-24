@@ -85,15 +85,14 @@ class SELDFeatureExtractor():
                 continue
             # If the feature file doesn't exist, perform extraction
             audio, sr = utils.load_audio(audio_file, self.sampling_rate)
-            
+            print(audio.shape)
             audio_feat = feature_extractor(audio)
             #audio_feat = utils.extract_log_mel_spectrogram(audio, sr, self.n_fft, self.hop_length, self.win_length, self.nb_mels)
             
+           
             audio_feat = torch.tensor(audio_feat, dtype=torch.float32)
-            
+            print(audio_feat.shape)
             torch.save(audio_feat, feature_path)
-            
-            
 
     def extract_video_features(self, split):
         """
@@ -168,7 +167,7 @@ class SELDFeatureExtractor():
             else:
                 processed_labels = utils.process_labels(label_data, self.nb_label_frames, self.nb_unique_classes)
             torch.save(processed_labels, label_path)
-            
+
 
 if __name__ == '__main__':
     # use this space to test if the SELDFeatureExtractor class works as expected.

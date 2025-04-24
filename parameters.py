@@ -31,7 +31,7 @@ params = {
     # video feature extraction params
     'fps': 10,
     'resnet_feature_size': 49,  # (7,7) feature_map for every frame from resnet
-
+    'model_part': "sed-sde", # sed-sde,sed-doa
     # model params
     'nb_conv_blocks': 3,
     'nb_conv_filters': 64,
@@ -60,7 +60,7 @@ params = {
 
     # training params
     'nb_epochs': 300,
-    'batch_size': 64,
+    'batch_size': 32,
     'nb_workers': 0,
     'shuffle': True,
 

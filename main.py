@@ -19,22 +19,14 @@ from torch.utils.data import DataLoader
 from extract_features import SELDFeatureExtractor
 import utils
 from tqdm import tqdm
-from AugMix import augment_and_mix
+
 
 def train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss):
 
     seld_model.train()
     train_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
 
-    for i, (input_features, labels) in enumerate(dev_train_iterator):    
-        input_clone=input_features.clone()
-        label_clone=labels.clone()
-        
-        for j, (input_features_a, labels_a) in enumerate(zip(input_clone, label_clone)):
-            input_features_aug,labels_aug = augment_and_mix(input_features_a, labels_a)
-           
-            input_features = torch.cat((input_features, input_features_aug), dim=0)
-            labels = torch.cat((labels, labels_aug), dim=0)
+    for i, (input_features, labels) in enumerate(dev_train_iterator):
         optimizer.zero_grad()
         labels = labels.to(device)
         # Handling modalities
@@ -104,7 +96,7 @@ def main():
 
     # Set up dev_train and dev_test data iterator
     dev_train_dataset = DataGenerator(params=params, mode='dev_train')
-    dev_train_iterator = DataLoader(dataset=dev_train_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=params['shuffle'], drop_last=True)
+    dev_train_iterator = DataLoader(dataset=dev_train_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=params['shuffle'], drop_last=True) ###change here
 
     dev_test_dataset = DataGenerator(params=params, mode='dev_test')
     dev_test_iterator = DataLoader(dataset=dev_test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
