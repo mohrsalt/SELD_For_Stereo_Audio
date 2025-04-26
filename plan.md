@@ -29,7 +29,7 @@ finetune
 
 
 
-Loss
+Loss D
 metrics
 model    D
 main
