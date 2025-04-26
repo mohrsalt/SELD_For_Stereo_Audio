@@ -356,17 +356,40 @@ def convert_cartesian_to_polar(input_dict):
     return output_dict
 
 
-def get_accdoa_labels(logits, nb_classes, modality):
-    x, y = logits[:, :, :nb_classes], logits[:, :, nb_classes:2 * nb_classes]
-    sed = torch.sqrt(x ** 2 + y ** 2) > 0.5
-    distance = logits[:, :, 2 * nb_classes: 3 * nb_classes]
+def convert_cartesian_to_polar_doa(input_dict):
+    output_dict = {}
+    for frame_idx in input_dict.keys():
+        if frame_idx not in output_dict:
+            output_dict[frame_idx] = []
+        for tmp_val in input_dict[frame_idx]:
+            x = tmp_val[1]
+            y = tmp_val[2]
+            azi_rad = np.arctan2(y, x)
+            azimuth = azi_rad * 180 / np.pi
+            output_dict[frame_idx].append(tmp_val[0:1] + [azimuth] + tmp_val[3:])
+    return output_dict
+
+def get_accdoa_labels_sde(logits, nb_classes, modality):
+    sed= logits[:, :, :nb_classes]
+    distance = logits[:, :, nb_classes:2 * nb_classes]
+
     distance[distance < 0.] = 0.
     if modality == 'audio_visual':
-        on_screen = logits[:, :, 3 * nb_classes: 4 * nb_classes]
+        on_screen = logits[:, :, 2 * nb_classes: 3 * nb_classes]
     else:
         on_screen = torch.zeros_like(distance)  # don't care for audio modality
     dummy_src_id = torch.zeros_like(distance)
-    return sed, dummy_src_id, x, y, distance, on_screen
+    return sed, dummy_src_id, distance, on_screen
+
+def get_accdoa_labels_doa(logits, nb_classes, modality):
+    sed= logits[:, :, :nb_classes]
+    x, y = logits[:, :, nb_classes:2 * nb_classes], logits[:, :, 2 * nb_classes: 3 * nb_classes]
+    if modality == 'audio_visual':
+        on_screen = logits[:, :, 3 * nb_classes: 4 * nb_classes]
+    else:
+        on_screen = torch.zeros_like(sed)  # don't care for audio modality
+    dummy_src_id = torch.zeros_like(sed)
+    return sed, dummy_src_id, x, y, on_screen
 
 
 def get_multiaccdoa_labels(logits, nb_classes, modality):
@@ -438,6 +461,30 @@ def get_output_dict_format_single_accdoa(sed, src_id, x, y, dist, onscreen, conv
         output_dict = convert_cartesian_to_polar(output_dict)
     return output_dict
 
+def get_output_dict_format_single_accdoa_sde(sed, src_id, dist, onscreen, convert_to_polar=True):
+    output_dict = {}
+    for frame_cnt in range(sed.shape[0]):
+        for class_cnt in range(sed.shape[1]):
+            if sed[frame_cnt][class_cnt] > 0.5:
+                if frame_cnt not in output_dict:
+                    output_dict[frame_cnt] = []
+                output_dict[frame_cnt].append([class_cnt, src_id[frame_cnt][class_cnt], dist[frame_cnt][class_cnt], onscreen[frame_cnt][class_cnt]])
+
+
+    return output_dict
+
+def get_output_dict_format_single_accdoa_doa(sed, src_id, x, y, onscreen, convert_to_polar=True):
+    output_dict = {}
+    for frame_cnt in range(sed.shape[0]):
+        for class_cnt in range(sed.shape[1]):
+            if sed[frame_cnt][class_cnt] > 0.5:
+                if frame_cnt not in output_dict:
+                    output_dict[frame_cnt] = []
+                output_dict[frame_cnt].append([class_cnt, src_id[frame_cnt][class_cnt], x[frame_cnt][class_cnt], y[frame_cnt][class_cnt], onscreen[frame_cnt][class_cnt]])
+
+    if convert_to_polar:
+        output_dict = convert_cartesian_to_polar_doa(output_dict)
+    return output_dict
 
 def distance_between_cartesian_coordinates(x1, y1, x2, y2):
     """
@@ -614,6 +661,50 @@ def write_logits_to_dcase_format(logits, params, output_dir, filelist, split='de
         sed, dummy_src_id, x, y, dist, onscreen = get_accdoa_labels(logits, params['nb_classes'], params['modality'])
         for i in range(sed.size(0)):
             sed_i, dummy_src_id_i, x_i, y_i, dist_i, onscreen_i = sed[i].cpu().numpy(), dummy_src_id[i].cpu().numpy(), x[i].cpu().numpy(), y[i].cpu().numpy(), dist[i].cpu().numpy(), onscreen[i].cpu().numpy()
+            output_dict = get_output_dict_format_single_accdoa(sed_i, dummy_src_id_i, x_i, y_i, dist_i, onscreen_i, convert_to_polar=True)
+            write_to_dcase_output_format(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
+    else:
+        (sed0, dummy_src_id0, doa0, dist0, on_screen0,
+         sed1, dummy_src_id1, doa1, dist1, on_screen1,
+         sed2, dummy_src_id2, doa2, dist2, on_screen2) = get_multiaccdoa_labels(logits, params['nb_classes'], params['modality'])
+
+        for i in range(sed0.size(0)):
+            sed0_i, dummy_src_id0_i, doa0_i, dist0_i, on_screen0_i = sed0[i].cpu().numpy(), dummy_src_id0[i].cpu().numpy(), doa0[i].cpu().numpy(), dist0[i].cpu().numpy(), on_screen0[i].cpu().numpy()
+            sed1_i, dummy_src_id1_i, doa1_i, dist1_i, on_screen1_i = sed1[i].cpu().numpy(), dummy_src_id1[i].cpu().numpy(), doa1[i].cpu().numpy(), dist1[i].cpu().numpy(), on_screen1[i].cpu().numpy()
+            sed2_i, dummy_src_id2_i, doa2_i, dist2_i, on_screen2_i = sed2[i].cpu().numpy(), dummy_src_id2[i].cpu().numpy(), doa2[i].cpu().numpy(), dist2[i].cpu().numpy(), on_screen2[i].cpu().numpy()
+
+            output_dict = get_output_dict_format_multi_accdoa(sed0_i, dummy_src_id0_i, doa0_i, dist0_i, on_screen0_i,
+                                                              sed1_i, dummy_src_id1_i, doa1_i, dist1_i, on_screen1_i,
+                                                              sed2_i, dummy_src_id2_i, doa2_i, dist2_i, on_screen2_i, params['thresh_unify'], params['nb_classes'], convert_to_polar=True)
+            write_to_dcase_output_format(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
+
+def write_logits_to_dcase_format_sde(logits, params, output_dir, filelist, split='dev-test'):
+    if not params['multiACCDOA']:
+        sed, dummy_src_id, dist, onscreen = get_accdoa_labels_sde(logits, params['nb_classes'], params['modality'])
+        for i in range(sed.size(0)):
+            sed_i, dummy_src_id_i, dist_i, onscreen_i = sed[i].cpu().numpy(), dummy_src_id[i].cpu().numpy(), dist[i].cpu().numpy(), onscreen[i].cpu().numpy()
+            output_dict = get_output_dict_format_single_accdoa(sed_i, dummy_src_id_i, x_i, y_i, dist_i, onscreen_i, convert_to_polar=True)
+            write_to_dcase_output_format(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
+    else:
+        (sed0, dummy_src_id0, doa0, dist0, on_screen0,
+         sed1, dummy_src_id1, doa1, dist1, on_screen1,
+         sed2, dummy_src_id2, doa2, dist2, on_screen2) = get_multiaccdoa_labels(logits, params['nb_classes'], params['modality'])
+
+        for i in range(sed0.size(0)):
+            sed0_i, dummy_src_id0_i, doa0_i, dist0_i, on_screen0_i = sed0[i].cpu().numpy(), dummy_src_id0[i].cpu().numpy(), doa0[i].cpu().numpy(), dist0[i].cpu().numpy(), on_screen0[i].cpu().numpy()
+            sed1_i, dummy_src_id1_i, doa1_i, dist1_i, on_screen1_i = sed1[i].cpu().numpy(), dummy_src_id1[i].cpu().numpy(), doa1[i].cpu().numpy(), dist1[i].cpu().numpy(), on_screen1[i].cpu().numpy()
+            sed2_i, dummy_src_id2_i, doa2_i, dist2_i, on_screen2_i = sed2[i].cpu().numpy(), dummy_src_id2[i].cpu().numpy(), doa2[i].cpu().numpy(), dist2[i].cpu().numpy(), on_screen2[i].cpu().numpy()
+
+            output_dict = get_output_dict_format_multi_accdoa(sed0_i, dummy_src_id0_i, doa0_i, dist0_i, on_screen0_i,
+                                                              sed1_i, dummy_src_id1_i, doa1_i, dist1_i, on_screen1_i,
+                                                              sed2_i, dummy_src_id2_i, doa2_i, dist2_i, on_screen2_i, params['thresh_unify'], params['nb_classes'], convert_to_polar=True)
+            write_to_dcase_output_format(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
+
+def write_logits_to_dcase_format_doa(logits, params, output_dir, filelist, split='dev-test'):
+    if not params['multiACCDOA']:
+        sed, dummy_src_id, x, y, onscreen = get_accdoa_labels_doa(logits, params['nb_classes'], params['modality'])
+        for i in range(sed.size(0)):
+            sed_i, dummy_src_id_i, x_i, y_i, onscreen_i = sed[i].cpu().numpy(), dummy_src_id[i].cpu().numpy(), x[i].cpu().numpy(), y[i].cpu().numpy(), onscreen[i].cpu().numpy()
             output_dict = get_output_dict_format_single_accdoa(sed_i, dummy_src_id_i, x_i, y_i, dist_i, onscreen_i, convert_to_polar=True)
             write_to_dcase_output_format(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
 
