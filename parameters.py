@@ -55,7 +55,7 @@ params = {
     'label_sequence_length': 50,  # 5 seconds with 100ms frames
 
     # loss params
-    'multiACCDOA': True,
+    'multiACCDOA': False,
     'thresh_unify': 15,
 
     # training params

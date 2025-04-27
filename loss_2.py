@@ -23,7 +23,7 @@ class SedDoaLoss(nn.Module):
         return loss
 
     
-class SedDistLoss_2024_MSPE(nn.Module):
+class SedSdeLoss(nn.Module):
     def __init__(self, loss_weight=[1.0, 0.1]):
         super().__init__()
         self.criterion_sed = nn.BCELoss()      
