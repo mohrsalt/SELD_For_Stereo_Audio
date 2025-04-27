@@ -8,10 +8,12 @@ Date: March 2025
 """
 
 import utils
-from model import SELDModel
+from models.model import SED_DOA,SED_SDE
 import pickle
 import os
 from parameters import params
+import parameters_seddoa
+import parameters_sedsde
 import torch
 from metrics import ComputeSELDResults
 from data_generator import DataGenerator
@@ -25,26 +27,35 @@ def run_inference():
     # f = open(params_file, "rb")
     # params = pickle.load(f)
     # print(params)
-    reference = model_dir.split('/')[-1]
-    output_dir = os.path.join(params['output_dir'], reference)
+    reference_sde = model_dir_sde.split('/')[-1]
+    reference_doa = model_dir_doa.split('/')[-1]
+    output_dir_sde = os.path.join(parameters_sedsde.params['output_dir'], reference_sde)
+    output_dir_doa = os.path.join(parameters_seddoa.params['output_dir'], reference_doa)
+    os.makedirs(parameters_sedsde.params['output_dir'], exist_ok=True)
+    os.makedirs(output_dir_sde, exist_ok=True)
+    os.makedirs(parameters_seddoa.params['output_dir'], exist_ok=True)
+    os.makedirs(output_dir_doa, exist_ok=True)
     os.makedirs(params['output_dir'], exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
 
     # Feature extraction code.
     feature_extractor = SELDFeatureExtractor(params)
     feature_extractor.extract_features(split='dev')
     feature_extractor.extract_labels(split='dev')
 
-    seld_model = SELDModel(params).to(device)
-    model_ckpt = torch.load(os.path.join(model_dir, 'best_model.pth'), map_location=device, weights_only=False)
-    seld_model.load_state_dict(model_ckpt['seld_model'])
+    doa_model = SED_DOA(params).to(device)
+    sed_model = SED_SDE(params).to(device)
+    model_ckpt_sde = torch.load(os.path.join(model_dir_sde, 'best_model.pth'), map_location=device, weights_only=False)
+    model_ckpt_doa = torch.load(os.path.join(model_dir_doa, 'best_model.pth'), map_location=device, weights_only=False)
+    sed_model.load_state_dict(model_ckpt_sde['seld_model'])
+    doa_model.load_state_dict(model_ckpt_doa['seld_model'])
     print(params['root_dir'])
     seld_metrics = ComputeSELDResults(params=params, ref_files_folder=os.path.join(params['root_dir'], 'metadata_dev'))
 
     test_dataset = DataGenerator(params=params, mode='dev_test')
     test_iterator = DataLoader(dataset=test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
 
-    seld_model.eval()
+    sed_model.eval()
+    doa_model.eval()
     with torch.no_grad():
         for j, (input_features, labels) in enumerate(test_iterator):
             labels = labels.to(device)
@@ -57,17 +68,25 @@ def run_inference():
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits = seld_model(audio_features, video_features)
-
+            logits_sde = sed_model(audio_features, video_features)
+            logits_doa = doa_model(audio_features, video_features)
             # save predictions to csv files for metric calculations
-            utils.write_logits_to_dcase_format(logits, params, output_dir, test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
+            nb_classes=params['nb_classes']
+            sed_1 = logits_sde[:, :, :nb_classes]
+            sed_2 = logits_doa[:, :, :nb_classes]
+            sed=(sed_1 + sed_2) /2
+            x, y = logits_doa[:, :, nb_classes:2 * nb_classes], logits_doa[:, :, 2 * nb_classes: 3 * nb_classes]
+            distance = logits_sde[:, :, nb_classes: 2 * nb_classes]
+            pred = torch.cat((sed, x,y,distance), dim=-1)
+            utils.write_logits_to_dcase_format(pred, params, params["output_dir"], test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
 
-        test_metric_scores = seld_metrics.get_SELD_Results(pred_files_path=os.path.join(output_dir, 'dev-test'), is_jackknife=False)
+        test_metric_scores = seld_metrics.get_SELD_Results(pred_files_path=os.path.join(params["output_dir"], 'dev-test'), is_jackknife=False)
         test_f, test_ang_error, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr = test_metric_scores
         utils.print_results(test_f, test_ang_error, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr, params)
 
 
 if __name__ == '__main__':
-    model_dir = "/home/var/Desktop/Mohor/DCASE2025_seld_baseline/checkpoints/Baseline_DirectionalLogMel_NoDataAug"
+    model_dir_sde = "/home/var/Desktop/Mohor/DCASE2025_seld_baseline/checkpoints_sde/Baseline_DirectionalLogMel_NoDataAug"
+    model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_seld_baseline/checkpoints_doa/Baseline_DirectionalLogMel_NoDataAug"
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     run_inference()

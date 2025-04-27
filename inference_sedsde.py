@@ -8,12 +8,12 @@ Date: March 2025
 """
 
 import utils
-from model import SELDModel
+from models.model import SED_SDE
 import pickle
 import os
-from parameters import params
+from parameters_sedsde import params
 import torch
-from metrics import ComputeSELDResults
+from metrics_sedsde import ComputeSELDResults
 from data_generator import DataGenerator
 from torch.utils.data import DataLoader
 from extract_features import SELDFeatureExtractor
@@ -35,7 +35,7 @@ def run_inference():
     feature_extractor.extract_features(split='dev')
     feature_extractor.extract_labels(split='dev')
 
-    seld_model = SELDModel(params).to(device)
+    seld_model = SED_SDE(params).to(device)
     model_ckpt = torch.load(os.path.join(model_dir, 'best_model.pth'), map_location=device, weights_only=False)
     seld_model.load_state_dict(model_ckpt['seld_model'])
     print(params['root_dir'])
@@ -60,14 +60,14 @@ def run_inference():
             logits = seld_model(audio_features, video_features)
 
             # save predictions to csv files for metric calculations
-            utils.write_logits_to_dcase_format(logits, params, output_dir, test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
+            utils.write_logits_to_dcase_format_sde(logits, params, output_dir, test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
 
         test_metric_scores = seld_metrics.get_SELD_Results(pred_files_path=os.path.join(output_dir, 'dev-test'), is_jackknife=False)
-        test_f, test_ang_error, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr = test_metric_scores
-        utils.print_results(test_f, test_ang_error, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr, params)
+        test_f, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr = test_metric_scores
+        utils.print_results_sde(test_f, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr, params)
 
 
 if __name__ == '__main__':
-    model_dir = "/home/var/Desktop/Mohor/DCASE2025_seld_baseline/checkpoints/Baseline_DirectionalLogMel_NoDataAug"
+    model_dir = "/home/var/Desktop/Mohor/DCASE2025_seld_baseline/checkpoints_sde/Baseline_DirectionalLogMel_NoDataAug"
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     run_inference()

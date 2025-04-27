@@ -369,6 +369,18 @@ def convert_cartesian_to_polar_doa(input_dict):
             output_dict[frame_idx].append(tmp_val[0:1] + [azimuth] + tmp_val[3:])
     return output_dict
 
+def get_accdoa_labels(logits, nb_classes, modality):
+    sed= logits[:, :, :nb_classes]
+    x, y = logits[:, :, nb_classes:2 * nb_classes], logits[:, :, 2 * nb_classes: 3 * nb_classes]
+    distance = logits[:, :, 3 * nb_classes: 4 * nb_classes]
+    distance[distance < 0.] = 0.
+    if modality == 'audio_visual':
+        on_screen = logits[:, :, 4 * nb_classes: 5 * nb_classes]
+    else:
+        on_screen = torch.zeros_like(distance)  # don't care for audio modality
+    dummy_src_id = torch.zeros_like(distance)
+    return sed, dummy_src_id, x, y, distance, on_screen
+
 def get_accdoa_labels_sde(logits, nb_classes, modality):
     sed= logits[:, :, :nb_classes]
     distance = logits[:, :, nb_classes:2 * nb_classes]
@@ -643,7 +655,7 @@ def get_output_dict_format_multi_accdoa(sed0, dummy_src_id0, doa0, dist0, on_scr
     return output_dict
 
 
-def write_to_dcase_output_format(output_dict, output_dir, filename, split, convert_dist_to_cm=True):
+def write_to_dcase_output_format(output_dict, output_dir, filename, split, convert_dist_to_cm=True): 
     os.makedirs(os.path.join(output_dir, split), exist_ok=True)
     file_path = os.path.join(output_dir,split, filename)
     with open(file_path, 'w') as f:
@@ -655,6 +667,29 @@ def write_to_dcase_output_format(output_dict, output_dir, filename, split, conve
                 dist_rounded = round(float(value[3]) * 100) if convert_dist_to_cm else round(float(value[3]))
                 f.write(f"{int(frame_ind)},{int(value[0])},{int(value[1])},{azimuth_rounded},{dist_rounded},{int(value[4])}\n")
 
+def write_to_dcase_output_format_doa(output_dict, output_dir, filename, split, convert_dist_to_cm=True): 
+    os.makedirs(os.path.join(output_dir, split), exist_ok=True)
+    file_path = os.path.join(output_dir,split, filename)
+    with open(file_path, 'w') as f:
+        f.write('frame,class,source,azimuth,onscreen\n')
+        # Write data
+        for frame_ind, values in output_dict.items():
+            for value in values:
+                azimuth_rounded = round(float(value[2]))
+                
+                f.write(f"{int(frame_ind)},{int(value[0])},{int(value[1])},{azimuth_rounded},{int(value[3])}\n")
+
+def write_to_dcase_output_format_sde(output_dict, output_dir, filename, split, convert_dist_to_cm=True): 
+    os.makedirs(os.path.join(output_dir, split), exist_ok=True)
+    file_path = os.path.join(output_dir,split, filename)
+    with open(file_path, 'w') as f:
+        f.write('frame,class,source,distance,onscreen\n')
+        # Write data
+        for frame_ind, values in output_dict.items():
+            for value in values:
+                
+                dist_rounded = round(float(value[2]) * 100) if convert_dist_to_cm else round(float(value[2]))
+                f.write(f"{int(frame_ind)},{int(value[0])},{int(value[1])},{dist_rounded},{int(value[3])}\n")
 
 def write_logits_to_dcase_format(logits, params, output_dir, filelist, split='dev-test'):
     if not params['multiACCDOA']:
@@ -683,8 +718,8 @@ def write_logits_to_dcase_format_sde(logits, params, output_dir, filelist, split
         sed, dummy_src_id, dist, onscreen = get_accdoa_labels_sde(logits, params['nb_classes'], params['modality'])
         for i in range(sed.size(0)):
             sed_i, dummy_src_id_i, dist_i, onscreen_i = sed[i].cpu().numpy(), dummy_src_id[i].cpu().numpy(), dist[i].cpu().numpy(), onscreen[i].cpu().numpy()
-            output_dict = get_output_dict_format_single_accdoa(sed_i, dummy_src_id_i, x_i, y_i, dist_i, onscreen_i, convert_to_polar=True)
-            write_to_dcase_output_format(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
+            output_dict = get_output_dict_format_single_accdoa_sde(sed_i, dummy_src_id_i, dist_i, onscreen_i, convert_to_polar=True)
+            write_to_dcase_output_format_sde(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
     else:
         (sed0, dummy_src_id0, doa0, dist0, on_screen0,
          sed1, dummy_src_id1, doa1, dist1, on_screen1,
@@ -705,8 +740,8 @@ def write_logits_to_dcase_format_doa(logits, params, output_dir, filelist, split
         sed, dummy_src_id, x, y, onscreen = get_accdoa_labels_doa(logits, params['nb_classes'], params['modality'])
         for i in range(sed.size(0)):
             sed_i, dummy_src_id_i, x_i, y_i, onscreen_i = sed[i].cpu().numpy(), dummy_src_id[i].cpu().numpy(), x[i].cpu().numpy(), y[i].cpu().numpy(), onscreen[i].cpu().numpy()
-            output_dict = get_output_dict_format_single_accdoa(sed_i, dummy_src_id_i, x_i, y_i, dist_i, onscreen_i, convert_to_polar=True)
-            write_to_dcase_output_format(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
+            output_dict = get_output_dict_format_single_accdoa_doa(sed_i, dummy_src_id_i, x_i, y_i, onscreen_i, convert_to_polar=True)
+            write_to_dcase_output_format_doa(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
 
     else:
         (sed0, dummy_src_id0, doa0, dist0, on_screen0,
@@ -863,4 +898,122 @@ def print_results(f, ang_error, dist_error, rel_dist_error, onscreen_acc, class_
                     class_wise_scr[0][3][cls_cnt] if use_jackknife else class_wise_scr[3][cls_cnt],
                     '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][3][cls_cnt][0],
                                                 class_wise_scr[1][3][cls_cnt][1]) if use_jackknife else ''
+                ))
+
+def print_results_doa(f, ang_error, onscreen_acc, class_wise_scr, params):
+    use_jackknife = params['use_jackknife']
+    print('\n\n')
+    print('F-score: {:0.1f}% {}'.format(
+        100 * f[0] if use_jackknife else 100 * f,
+        '[{:0.2f}, {:0.2f}]'.format(100 * f[1][0], 100 * f[1][1]) if use_jackknife else ''
+    ))
+
+    print('DOA error: {:0.1f} {}'.format(
+        ang_error[0] if use_jackknife else ang_error,
+        '[{:0.2f}, {:0.2f}]'.format(ang_error[1][0], ang_error[1][1]) if use_jackknife else ''
+    ))
+
+
+    if params['modality'] == 'audio_visual':
+        print('Onscreen accuracy: {:0.1f}% {}'.format(
+            100 * onscreen_acc[0] if use_jackknife else 100 * onscreen_acc,
+            '[{:0.2f}, {:0.2f}]'.format(100 * onscreen_acc[1][0],
+                                        100 * onscreen_acc[1][1]) if use_jackknife else ''
+        ))
+
+    if params['average'] == 'macro':
+        print('Class-wise results on unseen data:')
+
+        if params['modality'] == 'audio_visual':
+            print('Class\tF-score\tDOA-Error\tOnscreenAcc.')
+        else:
+            print('Class\tF-score\tDOA-Error')
+
+        for cls_cnt in range(params['nb_classes']):
+            if params['modality'] == 'audio_visual':
+                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                    cls_cnt,
+                    class_wise_scr[0][0][cls_cnt] if use_jackknife else class_wise_scr[0][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][0][cls_cnt][0],
+                                                class_wise_scr[1][0][cls_cnt][1]) if use_jackknife else '',
+                    class_wise_scr[0][1][cls_cnt] if use_jackknife else class_wise_scr[1][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][1][cls_cnt][0],
+                                                class_wise_scr[1][1][cls_cnt][1]) if use_jackknife else '',
+                    class_wise_scr[0][2][cls_cnt] if use_jackknife else class_wise_scr[2][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][2][cls_cnt][0],
+                                                class_wise_scr[1][2][cls_cnt][1]) if use_jackknife else '',
+                ))
+            else:
+                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                    cls_cnt,
+                    class_wise_scr[0][0][cls_cnt] if use_jackknife else class_wise_scr[0][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][0][cls_cnt][0],
+                                                class_wise_scr[1][0][cls_cnt][1]) if use_jackknife else '',
+                    class_wise_scr[0][1][cls_cnt] if use_jackknife else class_wise_scr[1][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][1][cls_cnt][0],
+                                                class_wise_scr[1][1][cls_cnt][1]) if use_jackknife else ''
+                ))
+    
+def print_results_sde(f, dist_error, rel_dist_error, onscreen_acc, class_wise_scr, params):
+    use_jackknife = params['use_jackknife']
+    print('\n\n')
+    print('F-score: {:0.1f}% {}'.format(
+        100 * f[0] if use_jackknife else 100 * f,
+        '[{:0.2f}, {:0.2f}]'.format(100 * f[1][0], 100 * f[1][1]) if use_jackknife else ''
+    ))
+
+    print('Distance error: {:0.2f} {}'.format(
+        dist_error[0] if use_jackknife else dist_error,
+        '[{:0.2f}, {:0.2f}]'.format(dist_error[1][0], dist_error[1][1]) if use_jackknife else ''
+    ))
+    print('Relative distance error: {:0.2f} {}'.format(
+        rel_dist_error[0] if use_jackknife else rel_dist_error,
+        '[{:0.2f}, {:0.2f}]'.format(rel_dist_error[1][0], rel_dist_error[1][1]) if use_jackknife else ''
+    ))
+
+    if params['modality'] == 'audio_visual':
+        print('Onscreen accuracy: {:0.1f}% {}'.format(
+            100 * onscreen_acc[0] if use_jackknife else 100 * onscreen_acc,
+            '[{:0.2f}, {:0.2f}]'.format(100 * onscreen_acc[1][0],
+                                        100 * onscreen_acc[1][1]) if use_jackknife else ''
+        ))
+
+    if params['average'] == 'macro':
+        print('Class-wise results on unseen data:')
+
+        if params['modality'] == 'audio_visual':
+            print('Class\tF-score\tDist-Error\tRelDist-Error\tOnscreenAcc.')
+        else:
+            print('Class\tF-score\tDist-Error\tRelDist-Error')
+
+        for cls_cnt in range(params['nb_classes']):
+            if params['modality'] == 'audio_visual':
+                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                    cls_cnt,
+                    class_wise_scr[0][0][cls_cnt] if use_jackknife else class_wise_scr[0][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][0][cls_cnt][0],
+                                                class_wise_scr[1][0][cls_cnt][1]) if use_jackknife else '',
+                    class_wise_scr[0][1][cls_cnt] if use_jackknife else class_wise_scr[1][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][1][cls_cnt][0],
+                                                class_wise_scr[1][1][cls_cnt][1]) if use_jackknife else '',
+                    class_wise_scr[0][2][cls_cnt] if use_jackknife else class_wise_scr[2][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][2][cls_cnt][0],
+                                                class_wise_scr[1][2][cls_cnt][1]) if use_jackknife else '',
+                    class_wise_scr[0][3][cls_cnt] if use_jackknife else class_wise_scr[3][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][3][cls_cnt][0],
+                                                class_wise_scr[1][3][cls_cnt][1]) if use_jackknife else '',
+
+                ))
+            else:
+                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                    cls_cnt,
+                    class_wise_scr[0][0][cls_cnt] if use_jackknife else class_wise_scr[0][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][0][cls_cnt][0],
+                                                class_wise_scr[1][0][cls_cnt][1]) if use_jackknife else '',
+                    class_wise_scr[0][1][cls_cnt] if use_jackknife else class_wise_scr[1][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][1][cls_cnt][0],
+                                                class_wise_scr[1][1][cls_cnt][1]) if use_jackknife else '',
+                    class_wise_scr[0][2][cls_cnt] if use_jackknife else class_wise_scr[2][cls_cnt],
+                    '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][2][cls_cnt][0],
+                                                class_wise_scr[1][2][cls_cnt][1]) if use_jackknife else '',
                 ))
