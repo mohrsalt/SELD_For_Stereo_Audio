@@ -105,7 +105,7 @@ def main():
     seld_model = SED_SDE(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
 
-    seld_loss = SedSdeLoss(params=params).to(device)
+    seld_loss = SedSdeLoss().to(device)
 
     seld_metrics = ComputeSELDResults(params=params, ref_files_folder=os.path.join(params['root_dir'], 'metadata_dev'))
 

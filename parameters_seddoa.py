@@ -12,7 +12,7 @@ params = {
 
     # choose task
     'modality': 'audio',  # 'audio' or 'audio_visual'
-   
+    'net_type': 'SELDnet',
 
     # data params
     'root_dir': '/home/var/Desktop/Mohor/DCASE2025_seld_baseline/DCASE2025_SELD_dataset',  # parent directory containing the audio, video and labels directory

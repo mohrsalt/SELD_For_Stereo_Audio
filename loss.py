@@ -1,7 +1,6 @@
-import numpy as np
-import torch
+
 import torch.nn as nn
-import os
+
 
 class SedDoaLoss(nn.Module):
     def __init__(self, loss_weight=[1.0, 10.0]):
@@ -34,7 +33,7 @@ class SedSdeLoss(nn.Module):
         sed_out = output[:,:,:13]   
         dist_out = output[:,:,13:]
         sed_label = target[:,:,:13]   
-        dist_label = target[:,:,13:]
+        dist_label = target[:,:,39:52]
         dist_label += 1e-8
         loss_sed = self.criterion_sed(sed_out, sed_label)
 

@@ -3,3 +3,9 @@
 /DCASE2025_SELD_dataset
 /logs
 /outputs
+/checkpoints_doa
+/checkpoints_sde
+/logs_doa
+/outputs_sde
+/logs_sde
+/outputs_doa

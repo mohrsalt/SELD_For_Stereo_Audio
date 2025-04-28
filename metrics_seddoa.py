@@ -10,7 +10,7 @@ Date: February 2025
 
 
 import numpy as np
-from utils import least_distance_between_gt_pred, jackknife_estimation, load_labels, organize_labels
+from utils import least_distance_between_gt_pred, jackknife_estimation, load_labels_doa, organize_labels,organize_labels_doa,load_labels
 import os
 import warnings
 
@@ -123,9 +123,9 @@ class SELDMetrics(object):
                     # spatial distance between the associated reference-predicted tracks.
 
                     gt_values = np.array(list(gt[frame_cnt][class_cnt].values()))
-                    gt_az, gt_onscreeen = gt_values[:, 0], gt_values[:, 1], gt_values[:, 2]
+                    gt_az, gt_onscreeen = gt_values[:, 0], gt_values[:, 1]
                     pred_values = np.array(list(pred[frame_cnt][class_cnt].values()))
-                    pred_az, pred_onscreeen = pred_values[:, 0], pred_values[:, 1], pred_values[:, 2]
+                    pred_az, pred_onscreeen = pred_values[:, 0], pred_values[:, 1]
 
                     # Reference and predicted track matching
                     doa_err_list, row_inds, col_inds = least_distance_between_gt_pred(gt_az, pred_az)
@@ -226,10 +226,10 @@ class ComputeSELDResults(object):
         pred_labels_dict = {}
         for pred_cnt, pred_file in enumerate(pred_files):
             # Load predicted output format file
-            pred_dict = load_labels(os.path.join(pred_files_path, pred_file), convert_to_cartesian=False)
+            pred_dict = load_labels_doa(os.path.join(pred_files_path, pred_file), convert_to_cartesian=False)
             nb_pred_frames = max(list(pred_dict.keys())) if len(pred_dict) > 0 else 0
             nb_ref_frames = self._ref_labels[pred_file][1]
-            pred_labels = organize_labels(pred_dict, max(nb_pred_frames, nb_ref_frames))
+            pred_labels = organize_labels_doa(pred_dict, max(nb_pred_frames, nb_ref_frames))
             # pred_labels[frame-index][class-index][track-index] := [azimuth, onscreen]
             # Calculated scores
             eval.update_seld_scores(pred_labels, self._ref_labels[pred_file][0])

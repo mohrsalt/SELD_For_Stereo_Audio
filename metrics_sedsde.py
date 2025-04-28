@@ -10,7 +10,7 @@ Date: February 2025
 
 
 import numpy as np
-from utils import least_distance_between_gt_pred, jackknife_estimation, load_labels, organize_labels
+from utils import least_distance_between_gt_pred, jackknife_estimation, load_labels_sde, organize_labels,organize_labels_sde,load_labels
 import os
 import warnings
 
@@ -243,11 +243,11 @@ class ComputeSELDResults(object):
         pred_labels_dict = {}
         for pred_cnt, pred_file in enumerate(pred_files):
             # Load predicted output format file
-            pred_dict = load_labels(os.path.join(pred_files_path, pred_file), convert_to_cartesian=False)
+            pred_dict = load_labels_sde(os.path.join(pred_files_path, pred_file))
             nb_pred_frames = max(list(pred_dict.keys())) if len(pred_dict) > 0 else 0
             nb_ref_frames = self._ref_labels[pred_file][1]
-            pred_labels = organize_labels(pred_dict, max(nb_pred_frames, nb_ref_frames))
-            # pred_labels[frame-index][class-index][track-index] := [azimuth, distance, onscreen]
+            pred_labels = organize_labels_sde(pred_dict, max(nb_pred_frames, nb_ref_frames))
+            # pred_labels[frame-index][class-index][track-index] := [distance, onscreen]
             # Calculated scores
             eval.update_seld_scores(pred_labels, self._ref_labels[pred_file][0])
             if is_jackknife:

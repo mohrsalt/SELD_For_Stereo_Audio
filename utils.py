@@ -161,6 +161,37 @@ def load_labels(label_file, convert_to_cartesian=True):
         label_data = convert_polar_to_cartesian(label_data)
     return label_data
 
+def load_labels_doa(label_file, convert_to_cartesian=True):
+    label_data = {}
+    with open(label_file, 'r') as file:
+        lines = file.readlines()[1:]  # Skip the header
+        for line in lines:
+            values = line.strip().split(',')
+            frame_idx = int(values[0])
+            data_row = [int(values[1]), int(values[2]), float(values[3]), float(values[4])]
+            if frame_idx not in label_data:
+                label_data[frame_idx] = []
+            label_data[frame_idx].append(data_row)
+
+    if convert_to_cartesian:
+        label_data = convert_polar_to_cartesian(label_data)
+    return label_data
+
+def load_labels_sde(label_file):
+    label_data = {}
+    with open(label_file, 'r') as file:
+        lines = file.readlines()[1:]  # Skip the header
+        for line in lines:
+            values = line.strip().split(',')
+            frame_idx = int(values[0])
+            data_row = [int(values[1]), int(values[2]), float(values[3]), float(values[4])]
+            if frame_idx not in label_data:
+                label_data[frame_idx] = []
+            label_data[frame_idx].append(data_row)
+
+
+    return label_data
+
 
 def process_labels(_desc_file, _nb_label_frames, _nb_unique_classes):
 
@@ -328,7 +359,65 @@ def organize_labels(input_dict, max_frames, max_tracks=10):
 
     return output_dict
 
+def organize_labels_doa(input_dict, max_frames, max_tracks=10):
+    """
+    :param input_dict: Dictionary containing frame-wise sound event time and location information
+            _pred_dict[frame-index] = [[class-index, source-index, azimuth, distance, onscreen] x events in frame]
+    :param max_frames: Total number of frames in the recording
+    :param max_tracks: Total number of tracks in the output dict
+    :return: Dictionary containing class-wise sound event location information in each frame
+            dictionary_name[frame-index][class-index][track-index] = [azimuth, distance, onscreen]
+    """
+    tracks = set(range(max_tracks))
+    output_dict = {x: {} for x in range(max_frames)}
+    for frame_idx in range(0, max_frames):
+        if frame_idx not in input_dict:
+            continue
+        for [class_idx, source_idx, az, onscreen] in input_dict[frame_idx]:
+            if class_idx not in output_dict[frame_idx]:
+                output_dict[frame_idx][class_idx] = {}
+            if source_idx not in output_dict[frame_idx][class_idx] and source_idx < max_tracks:
+                track_idx = source_idx  # If possible, use source_idx as track_idx
+            else:                       # If not, use the first one available
+                try:
+                    track_idx = list(set(tracks) - output_dict[frame_idx][class_idx].keys())[0]
+                except IndexError:
+                    warnings.warn("The number of sources of is higher than the number of tracks. "
+                                  "Some events will be missed.")
+                    track_idx = 0  # Overwrite one event
+            output_dict[frame_idx][class_idx][track_idx] = [az, onscreen]
 
+    return output_dict
+
+def organize_labels_sde(input_dict, max_frames, max_tracks=10):
+    """
+    :param input_dict: Dictionary containing frame-wise sound event time and location information
+            _pred_dict[frame-index] = [[class-index, source-index, azimuth, distance, onscreen] x events in frame]
+    :param max_frames: Total number of frames in the recording
+    :param max_tracks: Total number of tracks in the output dict
+    :return: Dictionary containing class-wise sound event location information in each frame
+            dictionary_name[frame-index][class-index][track-index] = [azimuth, distance, onscreen]
+    """
+    tracks = set(range(max_tracks))
+    output_dict = {x: {} for x in range(max_frames)}
+    for frame_idx in range(0, max_frames):
+        if frame_idx not in input_dict:
+            continue
+        for [class_idx, source_idx, dist, onscreen] in input_dict[frame_idx]:
+            if class_idx not in output_dict[frame_idx]:
+                output_dict[frame_idx][class_idx] = {}
+            if source_idx not in output_dict[frame_idx][class_idx] and source_idx < max_tracks:
+                track_idx = source_idx  # If possible, use source_idx as track_idx
+            else:                       # If not, use the first one available
+                try:
+                    track_idx = list(set(tracks) - output_dict[frame_idx][class_idx].keys())[0]
+                except IndexError:
+                    warnings.warn("The number of sources of is higher than the number of tracks. "
+                                  "Some events will be missed.")
+                    track_idx = 0  # Overwrite one event
+            output_dict[frame_idx][class_idx][track_idx] = [dist, onscreen]
+
+    return output_dict
 def convert_polar_to_cartesian(input_dict):
     output_dict = {}
     for frame_idx in input_dict.keys():
@@ -362,11 +451,11 @@ def convert_cartesian_to_polar_doa(input_dict):
         if frame_idx not in output_dict:
             output_dict[frame_idx] = []
         for tmp_val in input_dict[frame_idx]:
-            x = tmp_val[1]
-            y = tmp_val[2]
+            x = tmp_val[2]
+            y = tmp_val[3]
             azi_rad = np.arctan2(y, x)
             azimuth = azi_rad * 180 / np.pi
-            output_dict[frame_idx].append(tmp_val[0:1] + [azimuth] + tmp_val[3:])
+            output_dict[frame_idx].append(tmp_val[0:2] + [azimuth] + tmp_val[4:])
     return output_dict
 
 def get_accdoa_labels(logits, nb_classes, modality):
@@ -667,7 +756,7 @@ def write_to_dcase_output_format(output_dict, output_dir, filename, split, conve
                 dist_rounded = round(float(value[3]) * 100) if convert_dist_to_cm else round(float(value[3]))
                 f.write(f"{int(frame_ind)},{int(value[0])},{int(value[1])},{azimuth_rounded},{dist_rounded},{int(value[4])}\n")
 
-def write_to_dcase_output_format_doa(output_dict, output_dir, filename, split, convert_dist_to_cm=True): 
+def write_to_dcase_output_format_doa(output_dict, output_dir, filename, split): 
     os.makedirs(os.path.join(output_dir, split), exist_ok=True)
     file_path = os.path.join(output_dir,split, filename)
     with open(file_path, 'w') as f:
@@ -931,7 +1020,7 @@ def print_results_doa(f, ang_error, onscreen_acc, class_wise_scr, params):
 
         for cls_cnt in range(params['nb_classes']):
             if params['modality'] == 'audio_visual':
-                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
                     cls_cnt,
                     class_wise_scr[0][0][cls_cnt] if use_jackknife else class_wise_scr[0][cls_cnt],
                     '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][0][cls_cnt][0],
@@ -944,7 +1033,7 @@ def print_results_doa(f, ang_error, onscreen_acc, class_wise_scr, params):
                                                 class_wise_scr[1][2][cls_cnt][1]) if use_jackknife else '',
                 ))
             else:
-                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                print('{}\t{:0.2f} {}\t{:0.2f} {}'.format(
                     cls_cnt,
                     class_wise_scr[0][0][cls_cnt] if use_jackknife else class_wise_scr[0][cls_cnt],
                     '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][0][cls_cnt][0],

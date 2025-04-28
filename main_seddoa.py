@@ -21,7 +21,7 @@ import utils
 from tqdm import tqdm
 
 
-def train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss):
+def train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss): 
 
     seld_model.train()
     train_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
@@ -52,7 +52,7 @@ def train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss):
     return avg_train_loss
 
 
-def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir, is_jackknife=False):
+def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir, is_jackknife=False): #here now
 
     seld_model.eval()
     val_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
@@ -80,7 +80,7 @@ def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir
         avg_val_loss = val_loss_per_epoch / len(dev_test_iterator)
 
         metric_scores = seld_metrics.get_SELD_Results(pred_files_path=os.path.join(output_dir, 'dev-test'), is_jackknife=is_jackknife)
-
+        
         return avg_val_loss, metric_scores
 
 
@@ -104,7 +104,7 @@ def main():
     # create model, optimizer, loss and metrics
     seld_model = SED_DOA(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
-    seld_loss = SedDoaLoss(params=params).to(device)
+    seld_loss = SedDoaLoss().to(device)
 
     seld_metrics = ComputeSELDResults(params=params, ref_files_folder=os.path.join(params['root_dir'], 'metadata_dev'))
 
