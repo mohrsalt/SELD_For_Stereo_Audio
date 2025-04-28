@@ -12,7 +12,7 @@ params = {
 
     # choose task
     'modality': 'audio',  # 'audio' or 'audio_visual'
-    'net_type': 'SELDnet',
+    
 
     # data params
     'root_dir': '/home/var/Desktop/Mohor/DCASE2025_seld_baseline/DCASE2025_SELD_dataset',  # parent directory containing the audio, video and labels directory
@@ -31,26 +31,7 @@ params = {
     # video feature extraction params
     'fps': 10,
     'resnet_feature_size': 49,  # (7,7) feature_map for every frame from resnet
-    
-    # model params
-    'nb_conv_blocks': 3,
-    'nb_conv_filters': 64,
-    'f_pool_size': [4, 4, 2],
-    't_pool_size': [5, 1, 1],
-    'dropout': 0.05,
 
-    'rnn_size': 128, #128 original
-    'nb_rnn_layers': 2,
-
-    'nb_self_attn_layers': 2,
-    'nb_attn_heads': 8,
-
-    'nb_transformer_layers': 2,
-
-    'nb_fnn_layers': 1,
-    'fnn_size':128,
-
-    'max_polyphony': 3,   # tracks for multiaccdoa
     'nb_classes': 13,
     'label_sequence_length': 50,  # 5 seconds with 100ms frames
 
