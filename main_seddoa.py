@@ -12,7 +12,7 @@ import os.path
 import torch
 from parameters_seddoa import params
 from models.model import SED_DOA
-from loss_2 import SedDoaLoss
+from loss import SedDoaLoss
 from metrics_seddoa import ComputeSELDResults
 from data_generator import DataGenerator
 from torch.utils.data import DataLoader
@@ -102,7 +102,7 @@ def main():
     dev_test_iterator = DataLoader(dataset=dev_test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
 
     # create model, optimizer, loss and metrics
-    seld_model = SED_DOA(params=params).to(device)
+    seld_model = SED_DOA(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
     seld_loss = SedDoaLoss(params=params).to(device)
 

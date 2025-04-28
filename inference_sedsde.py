@@ -35,7 +35,7 @@ def run_inference():
     feature_extractor.extract_features(split='dev')
     feature_extractor.extract_labels(split='dev')
 
-    seld_model = SED_SDE(params).to(device)
+    seld_model = SED_SDE(in_channel=6, in_dim=64).to(device)
     model_ckpt = torch.load(os.path.join(model_dir, 'best_model.pth'), map_location=device, weights_only=False)
     seld_model.load_state_dict(model_ckpt['seld_model'])
     print(params['root_dir'])

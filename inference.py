@@ -42,8 +42,8 @@ def run_inference():
     feature_extractor.extract_features(split='dev')
     feature_extractor.extract_labels(split='dev')
 
-    doa_model = SED_DOA(params).to(device)
-    sed_model = SED_SDE(params).to(device)
+    doa_model = SED_DOA(in_channel=6, in_dim=64).to(device)
+    sed_model = SED_SDE(in_channel=6, in_dim=64).to(device)
     model_ckpt_sde = torch.load(os.path.join(model_dir_sde, 'best_model.pth'), map_location=device, weights_only=False)
     model_ckpt_doa = torch.load(os.path.join(model_dir_doa, 'best_model.pth'), map_location=device, weights_only=False)
     sed_model.load_state_dict(model_ckpt_sde['seld_model'])

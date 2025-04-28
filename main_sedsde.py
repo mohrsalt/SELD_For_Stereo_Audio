@@ -12,7 +12,7 @@ import os.path
 import torch
 from parameters_sedsde import params
 from models.model import SED_SDE
-from loss_2 import SedSdeLoss
+from loss import SedSdeLoss
 from metrics_sedsde import ComputeSELDResults
 from data_generator import DataGenerator
 from torch.utils.data import DataLoader
@@ -102,7 +102,7 @@ def main():
     dev_test_iterator = DataLoader(dataset=dev_test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
 
     # create model, optimizer, loss and metrics
-    seld_model = SED_SDE(params=params).to(device)
+    seld_model = SED_SDE(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
 
     seld_loss = SedSdeLoss(params=params).to(device)
