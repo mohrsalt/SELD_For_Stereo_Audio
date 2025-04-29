@@ -68,8 +68,8 @@ def run_inference():
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits_sde = sed_model(audio_features, video_features)
-            logits_doa = doa_model(audio_features, video_features)
+            logits_sde = sed_model(audio_features)
+            logits_doa = doa_model(audio_features)
             # save predictions to csv files for metric calculations
             nb_classes=params['nb_classes']
             sed_1 = logits_sde[:, :, :nb_classes]

@@ -15,8 +15,8 @@ params = {
     
     'net_type': 'SELDnet',
     # data params
-    'root_dir': '/home/var/Desktop/Mohor/DCASE2025_seld_baseline/DCASE2025_SELD_dataset',  # parent directory containing the audio, video and labels directory
-    'feat_dir': '/home/var/Desktop/Mohor/DCASE2025_seld_baseline/DCASE2025_SELD_dataset/features',  # store extracted features here
+    'root_dir': '/home/var/Desktop/Mohor/DCASE2025_Nercslip/DCASE2025_SELD_dataset',  # parent directory containing the audio, video and labels directory
+    'feat_dir': '/home/var/Desktop/Mohor/DCASE2025_Nercslip/DCASE2025_SELD_dataset/features',  # store extracted features here
 
     'log_dir': 'logs',  # save all logs here like loss and metrics
     'checkpoints_dir': 'checkpoints',  # save trained model checkpoints and config

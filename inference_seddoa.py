@@ -57,7 +57,7 @@ def run_inference():
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits = seld_model(audio_features, video_features)
+            logits = seld_model(audio_features)
 
             # save predictions to csv files for metric calculations
             utils.write_logits_to_dcase_format_doa(logits, params, output_dir, test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])

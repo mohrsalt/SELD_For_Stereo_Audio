@@ -39,7 +39,7 @@ class SedSdeLoss(nn.Module):
 
         loss_dist = self.criterion_dist(dist_out* sed_label/ dist_label, dist_label* sed_label/ dist_label)
         loss = self.loss_weight[0] * loss_sed  + self.loss_weight[1] * loss_dist
-        return loss_sed, loss_dist, loss
+        return loss
     
 
     

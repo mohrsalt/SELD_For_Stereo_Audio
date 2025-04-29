@@ -38,7 +38,7 @@ def train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss):
             raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
         # Forward pass
-        logits = seld_model(audio_features, video_features)
+        logits = seld_model(audio_features)
 
         # Compute loss and back propagate
         loss = seld_loss(logits, labels)
@@ -69,7 +69,7 @@ def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits = seld_model(audio_features, video_features)
+            logits = seld_model(audio_features)
 
             # Compute loss
             loss = seld_loss(logits, labels)

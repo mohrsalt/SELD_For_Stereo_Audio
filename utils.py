@@ -419,6 +419,7 @@ def organize_labels_sde(input_dict, max_frames, max_tracks=10):
 
     return output_dict
 def convert_polar_to_cartesian(input_dict):
+
     output_dict = {}
     for frame_idx in input_dict.keys():
         if frame_idx not in output_dict:
@@ -428,6 +429,7 @@ def convert_polar_to_cartesian(input_dict):
             x = np.cos(azi_rad)
             y = np.sin(azi_rad)
             output_dict[frame_idx].append(tmp_val[0:2] + [x, y] + tmp_val[3:])
+
     return output_dict
 
 
