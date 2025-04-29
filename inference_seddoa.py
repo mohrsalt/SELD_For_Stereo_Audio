@@ -68,6 +68,6 @@ def run_inference():
 
 
 if __name__ == '__main__':
-    model_dir = "/home/var/Desktop/Mohor/DCASE2025_seld_baseline/checkpoints_doa/Baseline_DirectionalLogMel_NoDataAug"
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    model_dir = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250429_102618"
+    device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
     run_inference()
