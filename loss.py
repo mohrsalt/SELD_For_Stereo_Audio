@@ -31,7 +31,7 @@ class SedSdeLoss(nn.Module):
     
     def forward(self, output, target):
         sed_out = output[:,:,:13]   
-        dist_out = output[:,:,13:]
+        dist_out = output[:,:,39:52]
         sed_label = target[:,:,:13]   
         dist_label = target[:,:,39:52]
         dist_label += 1e-8

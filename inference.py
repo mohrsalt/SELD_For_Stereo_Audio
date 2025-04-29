@@ -76,7 +76,7 @@ def run_inference():
             sed_2 = logits_doa[:, :, :nb_classes]
             sed=(sed_1 + sed_2) /2
             x, y = logits_doa[:, :, nb_classes:2 * nb_classes], logits_doa[:, :, 2 * nb_classes: 3 * nb_classes]
-            distance = logits_sde[:, :, nb_classes: 2 * nb_classes]
+            distance = logits_sde[:, :, 3*nb_classes: 4 * nb_classes]
             pred = torch.cat((sed, x,y,distance), dim=-1)
             utils.write_logits_to_dcase_format(pred, params, params["output_dir"], test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
 

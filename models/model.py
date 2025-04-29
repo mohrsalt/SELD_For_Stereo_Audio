@@ -101,7 +101,12 @@ class SED_SDE(nn.Module):
             nn.Linear(encoder_dim, 13),
             nn.Sigmoid()
         )
-
+        self.out_layer = nn.Sequential(
+            nn.Linear(encoder_dim, encoder_dim),
+            nn.LeakyReLU(),
+            nn.Linear(encoder_dim, 26),
+            nn.Tanh()
+        ) 
         self.dist_out_layer = nn.Sequential(
             nn.Linear(encoder_dim, encoder_dim),
             nn.LeakyReLU(),
@@ -123,7 +128,8 @@ class SED_SDE(nn.Module):
         outputs = self.t_pooling(outputs)
         outputs = outputs.permute(0,2,1)
         sed = self.sed_out_layer(outputs)
+        doa = self.out_layer(outputs)
         dist = self.dist_out_layer(outputs)
-        pred = torch.cat((sed, dist), dim=-1) # [32, 50, 26]
+        pred = torch.cat((sed, doa, dist), dim=-1) # [32, 50, 52]
         # pdb.set_trace()
         return pred

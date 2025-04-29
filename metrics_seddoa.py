@@ -103,7 +103,7 @@ class SELDMetrics(object):
         :param pred: dictionary containing the predictions for every frame
             pred[frame-index][class-index][track-index] = [azimuth, onscreen]
         :param gt: dictionary containing the ground truth for every frame
-            gt[frame-index][class-index][track-index] = [azimuth, onscreen]
+            gt[frame-index][class-index][track-index] = [azimuth, distance, onscreen]
         """
         eps = np.finfo(float).eps
 
@@ -123,7 +123,7 @@ class SELDMetrics(object):
                     # spatial distance between the associated reference-predicted tracks.
 
                     gt_values = np.array(list(gt[frame_cnt][class_cnt].values()))
-                    gt_az, gt_onscreeen = gt_values[:, 0], gt_values[:, 1]
+                    gt_az, gt_onscreeen = gt_values[:, 0], gt_values[:, 2]
                     pred_values = np.array(list(pred[frame_cnt][class_cnt].values()))
                     pred_az, pred_onscreeen = pred_values[:, 0], pred_values[:, 1]
 

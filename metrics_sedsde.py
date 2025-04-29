@@ -111,9 +111,9 @@ class SELDMetrics(object):
         Computes the SELD scores given a prediction and ground truth labels.
 
         :param pred: dictionary containing the predictions for every frame
-            pred[frame-index][class-index][track-index] = [azimuth, distance, onscreen]
+         pred[frame-index][class-index][track-index] = [azimuth, distance, onscreen]
         :param gt: dictionary containing the ground truth for every frame
-            gt[frame-index][class-index][track-index] = [azimuth, distance, onscreen]
+         gt[frame-index][class-index][track-index] = [azimuth, distance, onscreen]
         """
         eps = np.finfo(float).eps
 
@@ -243,10 +243,10 @@ class ComputeSELDResults(object):
         pred_labels_dict = {}
         for pred_cnt, pred_file in enumerate(pred_files):
             # Load predicted output format file
-            pred_dict = load_labels_sde(os.path.join(pred_files_path, pred_file))
+            pred_dict = load_labels(os.path.join(pred_files_path, pred_file))
             nb_pred_frames = max(list(pred_dict.keys())) if len(pred_dict) > 0 else 0
             nb_ref_frames = self._ref_labels[pred_file][1]
-            pred_labels = organize_labels_sde(pred_dict, max(nb_pred_frames, nb_ref_frames))
+            pred_labels = organize_labels(pred_dict, max(nb_pred_frames, nb_ref_frames))
             # pred_labels[frame-index][class-index][track-index] := [distance, onscreen]
             # Calculated scores
             eval.update_seld_scores(pred_labels, self._ref_labels[pred_file][0])
@@ -292,7 +292,7 @@ class ComputeSELDResults(object):
                     [classwise_results, np.array(conf_interval)[5:].reshape(5, 13, 2) if len(classwise_results) else []])
 
         else:
-            return (F, AngE, DistE, RelDistE, OnscreenAq, classwise_results)
+            return (F, DistE, RelDistE, OnscreenAq, classwise_results)
 
 
 if __name__ == '__main__':

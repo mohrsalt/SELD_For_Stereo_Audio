@@ -562,7 +562,7 @@ def get_output_dict_format_single_accdoa(sed, src_id, x, y, dist, onscreen, conv
         output_dict = convert_cartesian_to_polar(output_dict)
     return output_dict
 
-def get_output_dict_format_single_accdoa_sde(sed, src_id, dist, onscreen, convert_to_polar=True):
+def get_output_dict_format_single_accdoa_sde(sed, src_id, dist, onscreen):
     output_dict = {}
     for frame_cnt in range(sed.shape[0]):
         for class_cnt in range(sed.shape[1]):
@@ -807,7 +807,7 @@ def write_logits_to_dcase_format_sde(logits, params, output_dir, filelist, split
         sed, dummy_src_id, dist, onscreen = get_accdoa_labels_sde(logits, params['nb_classes'], params['modality'])
         for i in range(sed.size(0)):
             sed_i, dummy_src_id_i, dist_i, onscreen_i = sed[i].cpu().numpy(), dummy_src_id[i].cpu().numpy(), dist[i].cpu().numpy(), onscreen[i].cpu().numpy()
-            output_dict = get_output_dict_format_single_accdoa_sde(sed_i, dummy_src_id_i, dist_i, onscreen_i, convert_to_polar=True)
+            output_dict = get_output_dict_format_single_accdoa_sde(sed_i, dummy_src_id_i, dist_i, onscreen_i)
             write_to_dcase_output_format_sde(output_dict, output_dir, os.path.basename(filelist[i])[:-3] + '.csv', split)
     else:
         (sed0, dummy_src_id0, doa0, dist0, on_screen0,
@@ -1077,7 +1077,7 @@ def print_results_sde(f, dist_error, rel_dist_error, onscreen_acc, class_wise_sc
 
         for cls_cnt in range(params['nb_classes']):
             if params['modality'] == 'audio_visual':
-                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
                     cls_cnt,
                     class_wise_scr[0][0][cls_cnt] if use_jackknife else class_wise_scr[0][cls_cnt],
                     '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][0][cls_cnt][0],
@@ -1094,7 +1094,7 @@ def print_results_sde(f, dist_error, rel_dist_error, onscreen_acc, class_wise_sc
 
                 ))
             else:
-                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
+                print('{}\t{:0.2f} {}\t{:0.2f} {}\t{:0.2f} {}'.format(
                     cls_cnt,
                     class_wise_scr[0][0][cls_cnt] if use_jackknife else class_wise_scr[0][cls_cnt],
                     '[{:0.2f}, {:0.2f}]'.format(class_wise_scr[1][0][cls_cnt][0],

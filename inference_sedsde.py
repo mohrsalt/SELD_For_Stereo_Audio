@@ -60,7 +60,7 @@ def run_inference():
             logits = seld_model(audio_features, video_features)
 
             # save predictions to csv files for metric calculations
-            utils.write_logits_to_dcase_format_sde(logits, params, output_dir, test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
+            utils.write_logits_to_dcase_format(logits, params, output_dir, test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
 
         test_metric_scores = seld_metrics.get_SELD_Results(pred_files_path=os.path.join(output_dir, 'dev-test'), is_jackknife=False)
         test_f, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr = test_metric_scores
