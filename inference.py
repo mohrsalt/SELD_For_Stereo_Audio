@@ -75,6 +75,7 @@ def run_inference():
             sed_1 = logits_sde[:, :, :nb_classes]
             sed_2 = logits_doa[:, :, :nb_classes]
             sed=(sed_1 + sed_2) /2
+            #sed=sed_2
             x, y = logits_doa[:, :, nb_classes:2 * nb_classes], logits_doa[:, :, 2 * nb_classes: 3 * nb_classes]
             distance = logits_sde[:, :, 3*nb_classes: 4 * nb_classes]
             pred = torch.cat((sed, x,y,distance), dim=-1)
@@ -86,7 +87,7 @@ def run_inference():
 
 
 if __name__ == '__main__':
-    model_dir_sde = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_sde/SELDnet_audio_singleACCDOA_20250429_140058"
-    model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250429_102618"
+    model_dir_sde = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_sde/SELDnet_audio_singleACCDOA_20250430_102157"
+    model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250429_235448"
     device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
     run_inference()

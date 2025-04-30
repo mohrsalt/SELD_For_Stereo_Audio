@@ -42,12 +42,12 @@ params = {
 
     # training params
     'nb_epochs': 300,
-    'batch_size': 32,
+    'batch_size': 128,
     'nb_workers': 0,
     'shuffle': True,
 
     # optimizer params
-    'learning_rate': 1e-3,
+    'learning_rate': 0.001,
     'weight_decay': 0,
 
     # folds for training, testing

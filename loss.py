@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class SedDoaLoss(nn.Module):
-    def __init__(self, loss_weight=[1.0, 10.0]):
+    def __init__(self, loss_weight=[0.1, 1]):
         super().__init__()
         self.criterion_sed = nn.BCELoss()
         self.criterion_doa = nn.MSELoss()
@@ -23,7 +23,7 @@ class SedDoaLoss(nn.Module):
 
     
 class SedSdeLoss(nn.Module):
-    def __init__(self, loss_weight=[1.0, 0.1]):
+    def __init__(self, loss_weight=[0.1, 1]):
         super().__init__()
         self.criterion_sed = nn.BCELoss()      
         self.criterion_dist = nn.MSELoss()

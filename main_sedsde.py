@@ -16,12 +16,13 @@ from loss import SedSdeLoss
 from metrics_sedsde import ComputeSELDResults
 from data_generator import DataGenerator
 from torch.utils.data import DataLoader
+from lr_scheduler.tri_stage_lr_scheduler import TriStageLRScheduler
 from extract_features import SELDFeatureExtractor
 import utils
 from tqdm import tqdm
 
 
-def train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss):
+def train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss):
 
     seld_model.train()
     train_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
@@ -44,6 +45,7 @@ def train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss):
         loss = seld_loss(logits, labels)
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         # Track loss
         train_loss_per_epoch += loss.item()
@@ -106,7 +108,13 @@ def main():
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
 
     seld_loss = SedSdeLoss().to(device)
-
+    total_steps = len(dev_train_dataset)// params['batch_size'] * params['nb_epochs']
+   
+    warmup_steps = int(total_steps*0.1)
+    hold_steps = int(total_steps*0.6)
+    decay_steps = int(total_steps*0.3)
+    scheduler = TriStageLRScheduler(optimizer, peak_lr=params['learning_rate'], init_lr_scale=0.01, final_lr_scale=0.05, 
+                                    warmup_steps=warmup_steps, hold_steps=hold_steps, decay_steps=decay_steps)
     seld_metrics = ComputeSELDResults(params=params, ref_files_folder=os.path.join(params['root_dir'], 'metadata_dev'))
 
     start_epoch = 0
@@ -114,7 +122,7 @@ def main():
 
     for epoch in tqdm(range(start_epoch, params['nb_epochs'])):
         # ------------- Training -------------- #
-        avg_train_loss = train_epoch(seld_model, dev_train_iterator, optimizer, seld_loss)
+        avg_train_loss = train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss)
         # -------------  Validation -------------- #
         avg_val_loss, metric_scores = val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir)
         val_f, val_dist_error, val_rel_dist_error, val_onscreen_acc, class_wise_scr = metric_scores

@@ -46,7 +46,7 @@ params = {
     'shuffle': True,
 
     # optimizer params
-    'learning_rate': 1e-3,
+    'learning_rate': 0.001,
     'weight_decay': 0,
 
     # folds for training, testing
