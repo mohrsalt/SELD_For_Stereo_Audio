@@ -42,8 +42,6 @@ acs
 mid-side stereo/left-right stereo
 
 
-loss weights
-lr scheduler
-shift data synth
-\
-no of steps 
+read the paper
+shift data done
+decide number of steps done

@@ -87,7 +87,7 @@ def run_inference():
 
 
 if __name__ == '__main__':
-    model_dir_sde = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_sde/SELDnet_audio_singleACCDOA_20250430_102157"
-    model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250429_235448"
+    model_dir_sde = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_sde/SELDnet_audio_singleACCDOA_20250501_082359"
+    model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250501_081031"
     device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
     run_inference()

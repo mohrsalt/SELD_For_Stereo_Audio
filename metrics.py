@@ -242,6 +242,7 @@ class ComputeSELDResults(object):
                            nb_classes=self._nb_classes, average=self._average)
         pred_labels_dict = {}
         for pred_cnt, pred_file in enumerate(pred_files):
+            
             # Load predicted output format file
             pred_dict = load_labels(os.path.join(pred_files_path, pred_file), convert_to_cartesian=False)
             nb_pred_frames = max(list(pred_dict.keys())) if len(pred_dict) > 0 else 0

@@ -109,7 +109,8 @@ def main():
     seld_loss = SedDoaLoss().to(device)
     
     total_steps = len(dev_train_dataset)// params['batch_size'] * params['nb_epochs']
-   
+    # print(total_steps)
+    # print(len(dev_train_dataset))
     warmup_steps = int(total_steps*0.1)
     hold_steps = int(total_steps*0.6)
     decay_steps = int(total_steps*0.3)
