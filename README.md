@@ -28,12 +28,6 @@ DCASE2025_SELD_dataset/
 │   ├── dev-train-sony/*.mp4
 │   ├── dev-test-tau/*.mp4
 │   ├── dev-test-sony/*.mp4
-
-
-
-
-
-
  ``` 
 
 
