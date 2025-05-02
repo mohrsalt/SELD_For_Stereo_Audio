@@ -1,4 +1,5 @@
 1. Create the following directories inside root directory-:
+``` bash
 a. outputs
 b. outputs_doa
 c. outputs_sde
@@ -8,7 +9,7 @@ g. checkpoints_sde
 h. logs
 i. logs_doa
 j. logs_sde
-
+```
 2. Download dataset folders in following directory hierarchy
 
 ```bash  
