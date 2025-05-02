@@ -11,22 +11,7 @@ j. logs_sde
 
 2. Download dataset folders in following directory hierarchy
 
-DCASE2025_SELD_dataset/
-├── stereo_dev/
-│   ├── dev-train-tau/*.wav
-│   ├── dev-train-sony/*.wav
-│   ├── dev-test-tau/*.wav
-│   ├── dev-test-sony/*.wav
-├── metadata_dev/
-│   ├── dev-train-tau/*.csv
-│   ├── dev-train-sony/*.csv
-│   ├── dev-test-tau/*.csv
-│   ├── dev-test-sony/*.csv
-├── video_dev/
-│   ├── dev-train-tau/*.mp4
-│   ├── dev-train-sony/*.mp4
-│   ├── dev-test-tau/*.mp4
-│   ├── dev-test-sony/*.mp4
+<pre> ```text DCASE2025_SELD_dataset/ ├── stereo_dev/ │ ├── dev-train-tau/*.wav │ ├── dev-train-sony/*.wav │ ├── dev-test-tau/*.wav │ ├── dev-test-sony/*.wav ├── metadata_dev/ │ ├── dev-train-tau/*.csv │ ├── dev-train-sony/*.csv │ ├── dev-test-tau/*.csv │ ├── dev-test-sony/*.csv ├── video_dev/ │ ├── dev-train-tau/*.mp4 │ ├── dev-train-sony/*.mp4 │ ├── dev-test-tau/*.mp4 │ ├── dev-test-sony/*.mp4 ``` </pre>
 
 
 If you generate synthetic data, place it into the respective folders under the name dev-train-synth.
