@@ -46,18 +46,18 @@ def run_inference():
 
     seld_model.eval()
     with torch.no_grad():
-        for j, (input_features, labels) in enumerate(test_iterator):
+        for j, (logmel_feat,onepeace_feat, labels) in enumerate(test_iterator):
             labels = labels.to(device)
             # Handling modalities
             if params['modality'] == 'audio':
-                audio_features, video_features = input_features.to(device), None
+                logmel_feat, onepeace_feat,video_features = logmel_feat.to(device),onepeace_feat.to(device), None
             elif params['modality'] == 'audio_visual':
-                audio_features, video_features = input_features[0].to(device), input_features[1].to(device)
+                logmel_feat, onepeace_feat, video_features = logmel_feat.to(device),onepeace_feat.to(device), None
             else:
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits = seld_model(audio_features)
+            logits = seld_model(logmel_feat)
 
             # save predictions to csv files for metric calculations
             utils.write_logits_to_dcase_format(logits, params, output_dir, test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
@@ -68,6 +68,6 @@ def run_inference():
 
 
 if __name__ == '__main__':
-    model_dir = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_sde/SELDnet_audio_singleACCDOA_20250429_140058"
+    model_dir = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_sde/SELDnet_audio_singleACCDOA_20250501_082359"
     device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
     run_inference()

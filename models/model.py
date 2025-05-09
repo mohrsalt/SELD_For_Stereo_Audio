@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.linear_model import BayesianRidge
 
 from .resnet import resnet18, resnet18_nopool, BasicBlock
 from .conformer import ConformerBlock
-
+import math
 import numpy as np
 
 layer_resnet = ['conv1', 'bn1', 'relu', 'layer1', 'layer1.0', 'layer1.0.conv1', 'layer1.0.bn1', 'layer1.0.relu', 'layer1.0.conv2', 'layer1.0.bn2', 'layer1.1', 'layer1.1.conv1', 'layer1.1.bn1', 'layer1.1.relu', 'layer1.1.conv2', 'layer1.1.bn2', 'maxpool1', 'layer2', 'layer2.0', 'layer2.0.conv1', 'layer2.0.bn1', 'layer2.0.relu', 'layer2.0.conv2', 'layer2.0.bn2', 'layer2.0.downsample', 'layer2.0.downsample.0', 'layer2.0.downsample.1', 'layer2.1', 'layer2.1.conv1', 'layer2.1.bn1', 'layer2.1.relu', 'layer2.1.conv2', 'layer2.1.bn2', 'maxpool2', 'layer3', 'layer3.0', 'layer3.0.conv1', 'layer3.0.bn1', 'layer3.0.relu', 'layer3.0.conv2', 'layer3.0.bn2', 'layer3.0.downsample', 'layer3.0.downsample.0', 'layer3.0.downsample.1', 'layer3.1', 'layer3.1.conv1', 'layer3.1.bn1', 'layer3.1.relu', 'layer3.1.conv2', 'layer3.1.bn2', 'maxpool3', 'layer4', 'layer4.0', 'layer4.0.conv1', 'layer4.0.bn1', 'layer4.0.relu', 'layer4.0.conv2', 'layer4.0.bn2', 'layer4.0.downsample', 'layer4.0.downsample.0', 'layer4.0.downsample.1', 'layer4.1', 'layer4.1.conv1', 'layer4.1.bn1', 'layer4.1.relu', 'layer4.1.conv2', 'layer4.1.bn2', 'conv5']
@@ -38,19 +40,19 @@ class SED_DOA(nn.Module):
         )
         self.t_pooling = nn.MaxPool1d(kernel_size=5)
         self.sed_out_layer = nn.Sequential(
-            nn.Linear(encoder_dim, encoder_dim),
+            nn.Linear(1536+encoder_dim, encoder_dim),
             nn.LeakyReLU(),
             nn.Linear(encoder_dim, 13),
             nn.Sigmoid()
         )
         self.out_layer = nn.Sequential(
-            nn.Linear(encoder_dim, encoder_dim),
+            nn.Linear(1536+encoder_dim, encoder_dim),
             nn.LeakyReLU(),
             nn.Linear(encoder_dim, 26),
             nn.Tanh()
         ) 
 
-    def forward(self, x):
+    def forward(self, x,onepeace):
         # pdb.set_trace() # [32, 6, 251, 64]
         conv_outputs = self.resnet(x)
         N,C,T,W = conv_outputs.shape
@@ -63,6 +65,9 @@ class SED_DOA(nn.Module):
         outputs = conformer_outputs.permute(0,2,1)
         outputs = self.t_pooling(outputs)
         outputs = outputs.permute(0,2,1)
+        
+        onepeace=onepeace.squeeze(1)
+        outputs=torch.cat((outputs,onepeace),dim=-1)
         sed = self.sed_out_layer(outputs)
         doa = self.out_layer(outputs)
         
@@ -121,7 +126,7 @@ class SED_SDE(nn.Module):
         conv_outputs = conv_outputs.permute(0,2,1,3).reshape(N, T, C*W)
 
         conformer_outputs = self.input_projection(conv_outputs)
-        #conformer_outputs = conv_outputs
+
         for layer in self.conformer_layers:
             conformer_outputs = layer(conformer_outputs)
         outputs = conformer_outputs.permute(0,2,1)
@@ -131,5 +136,176 @@ class SED_SDE(nn.Module):
         doa = self.out_layer(outputs)
         dist = self.dist_out_layer(outputs)
         pred = torch.cat((sed, doa, dist), dim=-1) # [32, 50, 52]
+        # pdb.set_trace()
+        return pred
+    
+
+class SED_SDE_Post(nn.Module):
+    def __init__(self, d_model=256, nhead=8, num_layers=8, dropout=0.1):
+        super().__init__()
+        self.d_model = d_model
+        self.input_proj = nn.Linear(3, d_model)  # 3 features → d_model
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=d_model, nhead=nhead, dim_feedforward=128, dropout=dropout, batch_first=True
+        )
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.output_proj = nn.Linear(d_model, 1)  # d_model → distance
+
+    def forward(self, x):
+        # x: (batch, 3, 50, 13)
+        B, C, T, N = x.shape
+        x = x.permute(0, 3, 2, 1)  # (B, 13, 50, 3)
+        x = x.reshape(B * N, T, C)  # (B*13, 50, 3)
+
+        x = self.input_proj(x)  # (B*13, 50, d_model)
+        x = self.transformer_encoder(x)  # (B*13, 50, d_model)
+        x = self.output_proj(x).squeeze(-1)  # (B*13, 50)
+        x = x.reshape(B, N, T).permute(0, 2, 1)  # (B, 50, 13)
+        return x
+
+
+###########################
+class SED_DOA_2(nn.Module):
+    def __init__(self, in_channel, in_dim):
+        super().__init__()
+        self.resnet = resnet18_nopool(in_channel=in_channel)
+        embedding_dim = in_dim // 32 * 256
+        encoder_dim = 256
+        self.input_projection = nn.Sequential(
+            nn.Linear(embedding_dim, encoder_dim),
+            nn.Dropout(p=0.05),
+        )
+        num_layers = 8
+        self.conformer_layers = nn.ModuleList(
+            [ConformerBlock(
+                dim = encoder_dim,
+                dim_head = 32,
+                heads = 8,
+                ff_mult = 2,
+                conv_expansion_factor = 2,
+                conv_kernel_size = 7,
+                attn_dropout = 0.1,
+                ff_dropout = 0.1,
+                conv_dropout = 0.1
+            ) for _ in range(num_layers)]
+        )
+        self.t_pooling = nn.MaxPool1d(kernel_size=5)
+        self.sed_out_layer = nn.Sequential(
+            nn.Linear(1536+encoder_dim, encoder_dim),
+            nn.LeakyReLU(),
+            nn.Linear(encoder_dim, 13),
+            nn.Sigmoid()
+        )
+        self.out_layer = nn.Sequential(
+            nn.Linear(encoder_dim, encoder_dim),
+            nn.LeakyReLU(),
+            nn.Linear(encoder_dim, 26),
+            nn.Tanh()
+        ) 
+
+    def forward(self, x,onepeace):
+        # pdb.set_trace() # [32, 6, 251, 64]
+        conv_outputs = self.resnet(x)
+        N,C,T,W = conv_outputs.shape
+        conv_outputs = conv_outputs.permute(0,2,1,3).reshape(N, T, C*W)
+
+        conformer_outputs = self.input_projection(conv_outputs)
+        #conformer_outputs = conv_outputs
+        for layer in self.conformer_layers:
+            conformer_outputs = layer(conformer_outputs)
+        outputs = conformer_outputs.permute(0,2,1)
+        outputs = self.t_pooling(outputs)
+        outputs = outputs.permute(0,2,1)
+        
+        onepeace=onepeace.squeeze(1)
+        outputs_2=torch.cat((outputs,onepeace),dim=-1)
+        sed = self.sed_out_layer(outputs_2)
+        doa = self.out_layer(outputs)
+        
+        pred = torch.cat((sed, doa), dim=-1) # [32, 50, 39]
+        # pdb.set_trace()
+        return pred
+    
+
+
+class SED_DOA_3(nn.Module):
+    def __init__(self, in_channel, in_dim):
+        super().__init__()
+        self.resnet = resnet18_nopool(in_channel=in_channel)
+        embedding_dim = in_dim // 32 * 256
+        encoder_dim = 256
+        self.input_projection = nn.Sequential(
+            nn.Linear(embedding_dim, encoder_dim),
+            nn.Dropout(p=0.05),
+        )
+        num_layers = 6
+        self.conformer_layers = nn.ModuleList(
+            [ConformerBlock(
+                dim = encoder_dim,
+                dim_head = 32,
+                heads = 8,
+                ff_mult = 2,
+                conv_expansion_factor = 2,
+                conv_kernel_size = 7,
+                attn_dropout = 0.1,
+                ff_dropout = 0.1,
+                conv_dropout = 0.1
+            ) for _ in range(num_layers)]
+        )
+        self.t_pooling = nn.MaxPool1d(kernel_size=5)
+        self.input_projection_2 = nn.Sequential(
+            nn.Linear(encoder_dim+1536, encoder_dim),
+            nn.Dropout(p=0.05),
+        )
+        num_layers_2 = 2
+        self.conformer_layers_2 = nn.ModuleList(
+            [ConformerBlock(
+                dim = encoder_dim,
+                dim_head = 32,
+                heads = 8,
+                ff_mult = 2,
+                conv_expansion_factor = 2,
+                conv_kernel_size = 7,
+                attn_dropout = 0.1,
+                ff_dropout = 0.1,
+                conv_dropout = 0.1
+            ) for _ in range(num_layers_2)]
+        )
+        self.sed_out_layer = nn.Sequential(
+            nn.Linear(encoder_dim, encoder_dim),
+            nn.LeakyReLU(),
+            nn.Linear(encoder_dim, 13),
+            nn.Sigmoid()
+        )
+        self.out_layer = nn.Sequential(
+            nn.Linear(encoder_dim, encoder_dim),
+            nn.LeakyReLU(),
+            nn.Linear(encoder_dim, 26),
+            nn.Tanh()
+        ) 
+
+    def forward(self, x,onepeace):
+        # pdb.set_trace() # [32, 6, 251, 64]
+        conv_outputs = self.resnet(x)
+        N,C,T,W = conv_outputs.shape
+        conv_outputs = conv_outputs.permute(0,2,1,3).reshape(N, T, C*W)
+
+        conformer_outputs = self.input_projection(conv_outputs)
+        #conformer_outputs = conv_outputs
+        for layer in self.conformer_layers:
+            conformer_outputs = layer(conformer_outputs)
+        outputs = conformer_outputs.permute(0,2,1)
+        outputs = self.t_pooling(outputs)
+        outputs = outputs.permute(0,2,1)
+        
+        onepeace=onepeace.squeeze(1)
+        outputs=torch.cat((outputs,onepeace),dim=-1)
+        outputs = self.input_projection_2(outputs)
+        for layer_2 in self.conformer_layers_2:
+            outputs = layer_2(outputs)
+        sed = self.sed_out_layer(outputs)
+        doa = self.out_layer(outputs)
+        
+        pred = torch.cat((sed, doa), dim=-1) # [32, 50, 39]
         # pdb.set_trace()
         return pred

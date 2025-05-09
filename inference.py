@@ -57,19 +57,19 @@ def run_inference():
     sed_model.eval()
     doa_model.eval()
     with torch.no_grad():
-        for j, (input_features, labels) in enumerate(test_iterator):
+        for j, (logmel_feat,onepeace_feat, labels) in enumerate(test_iterator):
             labels = labels.to(device)
             # Handling modalities
             if params['modality'] == 'audio':
-                audio_features, video_features = input_features.to(device), None
+                logmel_feat, onepeace_feat,video_features = logmel_feat.to(device),onepeace_feat.to(device), None
             elif params['modality'] == 'audio_visual':
-                audio_features, video_features = input_features[0].to(device), input_features[1].to(device)
+                logmel_feat, onepeace_feat, video_features = logmel_feat.to(device),onepeace_feat.to(device), None
             else:
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits_sde = sed_model(audio_features)
-            logits_doa = doa_model(audio_features)
+            logits_sde = sed_model(logmel_feat)
+            logits_doa = doa_model(logmel_feat, onepeace_feat)
             # save predictions to csv files for metric calculations
             nb_classes=params['nb_classes']
             sed_1 = logits_sde[:, :, :nb_classes]
@@ -88,6 +88,10 @@ def run_inference():
 
 if __name__ == '__main__':
     model_dir_sde = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_sde/SELDnet_audio_singleACCDOA_20250501_082359"
-    model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250501_081031"
-    device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
+    #model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250508_114732"#onepeace /home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250506_222215
+    model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250506_222215"
+    print(torch.cuda.is_available())
+    device =torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    print(device)
     run_inference()

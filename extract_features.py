@@ -24,8 +24,13 @@ import torch
 from torchvision.models import resnet50, ResNet50_Weights
 from tqdm import tqdm
 import utils
+import librosa
+import numpy as np
+from one_peace.models import from_pretrained
+from sklearn import preprocessing
 from feature import LogmelDirCue_Extractor
-import numpy
+import numpy as np
+
 class SELDFeatureExtractor():
     def __init__(self, params):
         """
@@ -37,7 +42,7 @@ class SELDFeatureExtractor():
         self.params = params
         self.root_dir = params['root_dir']
         self.feat_dir = params['feat_dir']
-
+        print("device:",self.device)
         self.modality = params['modality']
 
         # audio feature extraction
@@ -60,6 +65,78 @@ class SELDFeatureExtractor():
         # label extraction
         self.nb_label_frames = params['label_sequence_length']
         self.nb_unique_classes = params['nb_classes']
+
+        self.model = from_pretrained("ONE-PEACE", device=self.device, dtype="float32")
+    # def extract_audio_features(self, split):
+    #     """
+    #     Extracts audio features for a given split (dev/eval).
+    #     Args:
+    #         split (str): The split for which features need to be extracted ('dev' or 'eval').
+    #     """
+    #     scalar_list = [preprocessing.StandardScaler() for _ in range(0,6)]
+    #     if split == 'dev':
+    #         audio_files = glob.glob(os.path.join(self.root_dir, 'stereo_dev', 'dev-*', '*.wav'))
+            
+    #     elif split == 'eval':
+    #         audio_files = glob.glob(os.path.join(self.root_dir, 'stereo_eval', 'eval', '*.wav'))
+    #     else:
+    #         raise ValueError("Split must be either 'dev' or 'eval'.")
+
+    #     os.makedirs(os.path.join(self.feat_dir, f'stereo_{split}'), exist_ok=True)
+    #     feature_extractor = LogmelDirCue_Extractor().to(self.device)
+    #     for audio_file in tqdm(audio_files, desc=f"Processing audio files ({split})", unit="file"):
+    #         filename = os.path.splitext(os.path.basename(audio_file))[0] + '.pt'
+    #         feature_path = os.path.join(self.feat_dir, f'stereo_{split}', filename)
+    #         # Check if the feature file already exists
+    #         if os.path.exists(feature_path):
+    #             continue
+    #         # If the feature file doesn't exist, perform extraction
+    #         audio, sr = utils.load_audio(audio_file, self.sampling_rate)
+    #         print(audio.shape)
+    #         audio_feat = feature_extractor(audio)
+    #         #audio_feat = utils.extract_log_mel_spectrogram(audio, sr, self.n_fft, self.hop_length, self.win_length, self.nb_mels)
+            
+           
+    #         audio_feat = audio_feat.cpu()
+    #         print(audio_feat.shape)
+    #         if "dev-test-" not in audio_file:
+    #             for i_channel in range(len(scalar_list)):
+    #                 scalar_list[i_channel].partial_fit(audio_feat[i_channel])
+    #         audio_feat = torch.tensor(audio_feat, dtype=torch.float32)
+    #         torch.save(audio_feat, feature_path)
+    #     mean = []
+    #     std = []
+    #     for i_chan in range(len(scalar_list)):
+    #         mean.append(scalar_list[i_chan].mean_)
+    #         std.append(np.sqrt(scalar_list[i_chan].var_))
+    #     mean = np.stack(mean)[:, None, :]
+    #     std = np.stack(std)[:, None, :]
+    #     print("mean shape: ", mean.shape)
+    #     print("std shape: ", std.shape)
+    #     with h5py.File("/home/var/Desktop/Mohor/DCASE2025_Nercslip/Scalar", 'w') as hf:
+    #         hf.create_dataset(name='mean', data=mean, dtype=np.float32)
+    #         hf.create_dataset(name='std', data=std, dtype=np.float32)
+    #     print('Mean shape: ', mean.shape, '  Std shape: ', std.shape)
+    #     print("\nScalar saved\n")
+
+
+    def extract_one_peace_features(self, audio_path):
+        waveform, sr = librosa.load(audio_path, sr=24000)
+        frame_length = int(sr * 0.1)  
+        hop_length = frame_length  
+        frames = librosa.util.frame(waveform, frame_length=frame_length, hop_length=hop_length).T  
+        all_embeddings = []
+        with torch.no_grad():
+            for i in range(frames.shape[0]):
+                segment = torch.tensor(frames[i]).unsqueeze(0)  
+                src_audio, padding_mask = self.model.process_audio(segment)
+                emb = self.model.extract_audio_features(src_audio, padding_mask)  
+                all_embeddings.append(emb)
+
+        # Stack embeddings → (1, 50, 1536)
+        final_feature = torch.stack(all_embeddings, dim=1)
+        return final_feature
+    
 
     def extract_audio_features(self, split):
         """
@@ -85,14 +162,17 @@ class SELDFeatureExtractor():
                 continue
             # If the feature file doesn't exist, perform extraction
             audio, sr = utils.load_audio(audio_file, self.sampling_rate)
-            print(audio.shape)
             audio_feat = feature_extractor(audio)
+            onepeace_feat = self.extract_one_peace_features(audio_file)
             #audio_feat = utils.extract_log_mel_spectrogram(audio, sr, self.n_fft, self.hop_length, self.win_length, self.nb_mels)
             
            
             audio_feat = torch.tensor(audio_feat, dtype=torch.float32)
-            print(audio_feat.shape)
-            torch.save(audio_feat, feature_path)
+            onepeace_feat = torch.tensor(onepeace_feat, dtype=torch.float32)
+            torch.save({
+                        "logmel": audio_feat,
+                        "onepeace": onepeace_feat
+                    }, feature_path)
 
     def extract_video_features(self, split):
         """

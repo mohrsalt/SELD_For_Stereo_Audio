@@ -11,7 +11,7 @@ Date: January 2025
 import os.path
 import torch
 from parameters_seddoa import params
-from models.model import SED_DOA
+from models.model import SED_DOA_3
 from loss import SedDoaLoss
 from metrics_seddoa import ComputeSELDResults
 from data_generator import DataGenerator
@@ -27,20 +27,20 @@ def train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss):
     seld_model.train()
     train_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
 
-    for i, (input_features, labels) in enumerate(dev_train_iterator):
+    for i, (logmel_feat,onepeace_feat, labels) in enumerate(dev_train_iterator):
         
         optimizer.zero_grad()
         labels = labels.to(device)
         # Handling modalities
         if params['modality'] == 'audio':
-            audio_features, video_features = input_features.to(device), None
+            logmel_feat, onepeace_feat,video_features = logmel_feat.to(device),onepeace_feat.to(device), None
         elif params['modality'] == 'audio_visual':
-            audio_features, video_features = input_features[0].to(device), input_features[1].to(device)
+            logmel_feat, onepeace_feat, video_features = logmel_feat.to(device),onepeace_feat.to(device), None
         else:
             raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
         # Forward pass
-        logits = seld_model(audio_features)
+        logits = seld_model(logmel_feat, onepeace_feat)
 
         # Compute loss and back propagate
         loss = seld_loss(logits, labels)
@@ -59,19 +59,19 @@ def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir
     seld_model.eval()
     val_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
     with torch.no_grad():
-        for j, (input_features, labels) in enumerate(dev_test_iterator):
+        for j, (logmel_feat,onepeace_feat, labels) in enumerate(dev_test_iterator):
             labels = labels.to(device)
 
             # Handling modalities
             if params['modality'] == 'audio':
-                audio_features, video_features = input_features.to(device), None
+                logmel_feat, onepeace_feat, video_features = logmel_feat.to(device),onepeace_feat.to(device), None
             elif params['modality'] == 'audio_visual':
-                audio_features, video_features = input_features[0].to(device), input_features[1].to(device)
+                logmel_feat, onepeace_feat, video_features = logmel_feat.to(device),onepeace_feat.to(device), None
             else:
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits = seld_model(audio_features)
+            logits = seld_model(logmel_feat, onepeace_feat)
 
             # Compute loss
             loss = seld_loss(logits, labels)
@@ -104,7 +104,7 @@ def main():
     dev_test_iterator = DataLoader(dataset=dev_test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
 
     # create model, optimizer, loss and metrics
-    seld_model = SED_DOA(in_channel=6, in_dim=64).to(device)
+    seld_model = SED_DOA_3(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
     seld_loss = SedDoaLoss().to(device)
     

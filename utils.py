@@ -461,7 +461,7 @@ def convert_cartesian_to_polar_doa(input_dict):
     return output_dict
 
 def get_accdoa_labels(logits, nb_classes, modality):
-    sed= logits[:, :, :nb_classes]
+    sed= logits[:, :, :nb_classes]> 0.5
     x, y = logits[:, :, nb_classes:2 * nb_classes], logits[:, :, 2 * nb_classes: 3 * nb_classes]
     distance = logits[:, :, 3 * nb_classes: 4 * nb_classes]
     distance[distance < 0.] = 0.
@@ -473,7 +473,7 @@ def get_accdoa_labels(logits, nb_classes, modality):
     return sed, dummy_src_id, x, y, distance, on_screen
 
 def get_accdoa_labels_sde(logits, nb_classes, modality):
-    sed= logits[:, :, :nb_classes]
+    sed= logits[:, :, :nb_classes]> 0.5
     distance = logits[:, :, nb_classes:2 * nb_classes]
 
     distance[distance < 0.] = 0.
@@ -485,7 +485,7 @@ def get_accdoa_labels_sde(logits, nb_classes, modality):
     return sed, dummy_src_id, distance, on_screen
 
 def get_accdoa_labels_doa(logits, nb_classes, modality):
-    sed= logits[:, :, :nb_classes]
+    sed= logits[:, :, :nb_classes]> 0.5
     x, y = logits[:, :, nb_classes:2 * nb_classes], logits[:, :, 2 * nb_classes: 3 * nb_classes]
     if modality == 'audio_visual':
         on_screen = logits[:, :, 3 * nb_classes: 4 * nb_classes]
@@ -916,6 +916,30 @@ def least_distance_between_gt_pred(gt_list, pred_list):
     cost = cost_mat[row_ind, col_ind]
     return cost, row_ind, col_ind
 
+# def least_distance_between_gt_pred(gt_list, pred_list):
+#     """
+#     Finds the least-cost assignment between two sets of scalar distances using the Hungarian algorithm.
+
+#     :param gt_list: 1D numpy array of ground-truth distances
+#     :param pred_list: 1D numpy array of predicted distances
+#     :return: cost - array of absolute distance differences for the optimal assignment
+#     :return: row_ind - indices of matched gt_list entries
+#     :return: col_ind - indices of matched pred_list entries
+#     """
+#     gt_list = np.asarray(gt_list)
+#     pred_list = np.asarray(pred_list)
+    
+#     gt_len, pred_len = gt_list.shape[0], pred_list.shape[0]
+#     cost_mat = np.zeros((gt_len, pred_len))
+
+#     if gt_len and pred_len:
+#         for i in range(gt_len):
+#             for j in range(pred_len):
+#                 cost_mat[i, j] = abs(gt_list[i] - pred_list[j])
+
+#     row_ind, col_ind = linear_sum_assignment(cost_mat)
+#     cost = cost_mat[row_ind, col_ind]
+#     return cost, row_ind, col_ind
 
 def print_results(f, ang_error, dist_error, rel_dist_error, onscreen_acc, class_wise_scr, params):
     use_jackknife = params['use_jackknife']

@@ -24,6 +24,12 @@ finetune
 
 
 
+read ccnet paper
+read openpeace paper
+implement transformer
+
+
+
 
 
 
