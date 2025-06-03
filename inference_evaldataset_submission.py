@@ -146,12 +146,12 @@ def evaluate():
             x, y = logits_doa[:, :, nb_classes:2 * nb_classes], logits_doa[:, :, 2 * nb_classes: 3 * nb_classes]
             distance = logits_sde[:, :, 3*nb_classes: 4 * nb_classes]
             pred = torch.cat((sed, x,y,distance), dim=-1)
-            utils.write_logits_to_dcase_format(pred, params, params["output_dir"], eval_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']], split='eval')
+            utils.write_logits_to_dcase_format(pred, params, params["output_dir"], eval_iterator.dataset.audio_files[j * params['batch_size']: (j + 1) * params['batch_size']], split='eval')
 
 
 if __name__ == '__main__':
-    model_dir_sde = "/home/var/Desktop/Mohor/15_DCASE2025_Nercslip_op/checkpoints_sde/BestSdeModel"
-    model_dir_doa = "/home/var/Desktop/Mohor/15_DCASE2025_Nercslip_op/checkpoints_doa/OneP8_2_48_2_Best"
+    model_dir_sde = "/home/var/Desktop/Mohor/17_DCASE_2025_FinalSubmission_WithOnePeace/checkpoints_sde/BestSdeModel"
+    model_dir_doa = "/home/var/Desktop/Mohor/17_DCASE_2025_FinalSubmission_WithOnePeace/checkpoints_doa/OneP8_2_48_2_Best"
     device =torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     evaluate()

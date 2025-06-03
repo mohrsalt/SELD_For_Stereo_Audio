@@ -1,47 +1,130 @@
-1. Create the following directories inside root directory-:
-``` bash
-a. outputs
-b. outputs_doa
-c. outputs_sde
-e. checkpoints
-f. checkpoints_doa
-g. checkpoints_sde
-h. logs
-i. logs_doa
-j. logs_sde
+# 🎼 DCASE2025 SELD Evaluation – Inference Instructions
+
+This guide provides step-by-step instructions to set up the repository and perform inference on the 10K evaluation dataset using pre-trained DOA and SDE models.
+
+---
+
+## 🛠️ Repository Setup
+
+To prepare the environment and directory structure:
+
+### 1. Create Required Folders
+
+Open a terminal and run the following command:
+
+```bash
+mkdir checkpoints checkpoints_doa checkpoints_sde \
+      logs logs_doa logs_sde \
+      outputs outputs_doa outputs_sde \
+      DCASE2025_SELD_dataset
 ```
-2. Download dataset folders in following directory hierarchy
 
-```bash  
+---
+
+### 2. Add Evaluation Dataset
+
+Place your `stereo_eval` folder — containing the 10K evaluation dataset `.wav` files — into the following directory:
+
+```
 DCASE2025_SELD_dataset/
-├── stereo_dev/
-│   ├── dev-train-tau/*.wav
-│   ├── dev-train-sony/*.wav
-│   ├── dev-test-tau/*.wav
-│   ├── dev-test-sony/*.wav
-├── metadata_dev/
-│   ├── dev-train-tau/*.csv
-│   ├── dev-train-sony/*.csv
-│   ├── dev-test-tau/*.csv
-│   ├── dev-test-sony/*.csv
-├── video_dev/
-│   ├── dev-train-tau/*.mp4
-│   ├── dev-train-sony/*.mp4
-│   ├── dev-test-tau/*.mp4
-│   ├── dev-test-sony/*.mp4
- ``` 
+```
 
+---
 
-If you generate synthetic data, place it into the respective folders under the name dev-train-synth.
+### 3. Update Configuration Files
 
-3. In parameters.py file, change the file paths. Include absolute file paths
-4. Create environment from env2025.yml file and activate it by conda activate newein
-5. In one terminal, run python main_seddoa.py
-6. In second terminal, run python main_sedsde.py
-7. For inference, change the file paths in main functions of inference files to model paths which you can find under respective model outputs directories
+Edit the following Python files to match your local system's directory structure:
 
-This repository hosts the full experimental framework for the Nercslip architecture variants developed for the DCASE 2025 SELD challenge. This includes multiple configurations of the ResNet-Conformer backbone designed to process stereo log-mel and spatial features, with options for mid-fusion of high-dimensional contextual embeddings such as those from the One-Peace model. The repository is structured modularly to accommodate both SED-DOA and SED-SDE objectives, with shared components for feature extraction, loss computation, and evaluation.
+- `parameters.py`
+- `parameters_seddoa.py`
+- `parameters_sedsde.py`
 
-Key scripts include main_seddoa.py and main_sedsde.py, which handle the training loops, checkpointing logic, and data loading workflows. Custom loss functions tailored to each task variant are implemented in loss.py, supporting compound objectives like class-wise BCE, directional MSE, and distance regression. Feature extraction is centralized in feature.py, which handles stereo spectral-spatial composition (log-mel, ILD, IPD, GCC-PHAT) and alignment with pre-extracted One-Peace embeddings. Evaluation metrics are computed using metrics_seddoa.py and metrics_sedsde.py, with logging via both Tensorboard and CSV formats.
+Inside each file, update the values of the following keys:
 
-The repository also includes experiment-specific configuration files, scheduler logic, and directory management tools. Outputs such as logs, metrics, and checkpoints are saved in organized subfolders under logs/, outputs/, and checkpoints/. The design supports distributed execution and is compatible with SLURM-based GPU clusters, ensuring scalability for hyperparameter tuning and cross-validation across multiple folds.
+```python
+root_dir = "your/local/system/path"
+feat_dir = "your/local/system/path"
+```
+
+---
+
+## 🧪 Running Inference on the 10K Evaluation Dataset
+
+To perform inference and generate predictions:
+
+### 1. Add Model Checkpoints
+
+- Place your **DOA model checkpoint subfolder** inside:
+  ```
+  checkpoints_doa/
+  ```
+
+- Place your **SDE model checkpoint subfolder** inside:
+  ```
+  checkpoints_sde/
+  ```
+
+---
+
+### 2. Update Model Paths
+
+Open the file `inference_evaldataset_submission.py` and locate the global variables:
+
+```python
+model_dir_sde = ...
+model_dir_doa = ...
+```
+
+Update them to point to the corresponding checkpoint subfolders.
+
+---
+
+### 3. Activate Environment
+
+In your terminal, run:
+```bash
+conda activate newein
+```
+
+---
+
+### 4. Select GPU (Optional)
+
+If your available GPU index is not 0, set it using:
+```bash
+export CUDA_VISIBLE_DEVICES=<your_gpu_index>
+```
+
+---
+
+### 5. Clear Output Directory
+
+To avoid conflicts with previous output files:
+```bash
+cd outputs
+rm -rf *
+```
+
+---
+
+### 6. Run Inference
+
+Start the evaluation by running:
+```bash
+python inference_evaldataset_submission.py
+```
+
+This will generate **10,000 prediction CSV files** in the `outputs/` directory.
+
+---
+
+## 📂 Feature Generation Note
+
+A `features/` subdirectory will be automatically created within:
+
+```
+DCASE2025_SELD_dataset/
+```
+
+This will contain both **logmel** and **One-Peace** features.  
+⏱️ Feature extraction for all 10K files takes approximately **5 hours**.
