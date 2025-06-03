@@ -166,7 +166,7 @@ def main():
 if __name__ == '__main__':
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    restore_from_checkpoint = True
+    restore_from_checkpoint = False
     initial_checkpoint_path = '/home/var/Desktop/Mohor/DCASE2025_Nercslip_op/DOA_Pre'
 
   
