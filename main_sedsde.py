@@ -11,7 +11,7 @@ Date: January 2025
 import os.path
 import torch
 from parameters_sedsde import params
-from models.model import SED_SDE_6
+from models.model import SED_SDE
 from loss import SedSdeLoss
 from metrics_sedsde import ComputeSELDResults
 from data_generator import DataGenerator
@@ -39,7 +39,7 @@ def train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss):
             raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
         # Forward pass
-        logits = seld_model(logmel_feat, onepeace_feat)
+        logits = seld_model(logmel_feat)
 
         # Compute loss and back propagate
         loss = seld_loss(logits, labels)
@@ -71,7 +71,7 @@ def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits = seld_model(logmel_feat, onepeace_feat)
+            logits = seld_model(logmel_feat)
 
             # Compute loss
             loss = seld_loss(logits, labels)
@@ -104,7 +104,7 @@ def main():
     dev_test_iterator = DataLoader(dataset=dev_test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
 
     # create model, optimizer, loss and metrics
-    seld_model = SED_SDE_6(in_channel=6, in_dim=64).to(device)
+    seld_model = SED_SDE(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
 
     seld_loss = SedSdeLoss().to(device)
