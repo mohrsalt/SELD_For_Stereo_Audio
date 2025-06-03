@@ -11,7 +11,7 @@ Date: January 2025
 import os.path
 import torch
 from parameters_seddoa import params
-from models.model import SED_DOA_3
+from models.model import SED_DOA_6
 from loss import SedDoaLoss
 from metrics_seddoa import ComputeSELDResults
 from data_generator import DataGenerator
@@ -104,7 +104,7 @@ def main():
     dev_test_iterator = DataLoader(dataset=dev_test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
 
     # create model, optimizer, loss and metrics
-    seld_model = SED_DOA_3(in_channel=6, in_dim=64).to(device)
+    seld_model = SED_DOA_6(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
     seld_loss = SedDoaLoss().to(device)
     
@@ -120,7 +120,14 @@ def main():
 
     start_epoch = 0
     best_f_score = float('-inf')
-
+    if restore_from_checkpoint:
+            print('Loading model weights and optimizer state dict from initial checkpoint...')
+            model_ckpt = torch.load(os.path.join(initial_checkpoint_path, 'best_model.pth'), map_location=device, weights_only=False)
+            filtered_state_dict = {
+    k: v for k, v in model_ckpt['seld_model'].items()
+    if 'resnet' in k and k != 'resnet.conv1.weight'
+}
+            seld_model.load_state_dict(filtered_state_dict, strict=False)
     for epoch in tqdm(range(start_epoch, params['nb_epochs'])):
         # ------------- Training -------------- #
         avg_train_loss = train_epoch(seld_model, dev_train_iterator, optimizer, scheduler, seld_loss)
@@ -157,6 +164,11 @@ def main():
 
 
 if __name__ == '__main__':
+
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    restore_from_checkpoint = True
+    initial_checkpoint_path = '/home/var/Desktop/Mohor/DCASE2025_Nercslip_op/DOA_Pre'
+
+  
     main()
 

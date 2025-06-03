@@ -12,7 +12,9 @@ logs
 outputs_*
 # C extensions
 *.so
-
+DOA_Pre
+DOA_Pre_noEle
+SDE_Pre
 # macOS dir files
 .DS_Store
 

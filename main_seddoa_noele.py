@@ -10,10 +10,10 @@ Date: January 2025
 
 import os.path
 import torch
-from parameters_sedsde import params
-from models.model import SED_SDE_6
-from loss import SedSdeLoss
-from metrics_sedsde import ComputeSELDResults
+from parameters_seddoa import params
+from models.model import SED_DOA_6
+from loss import SedDoaLoss
+from metrics_seddoa import ComputeSELDResults
 from data_generator import DataGenerator
 from torch.utils.data import DataLoader
 from lr_scheduler.tri_stage_lr_scheduler import TriStageLRScheduler
@@ -22,12 +22,13 @@ import utils
 from tqdm import tqdm
 
 
-def train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss):
+def train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss): 
 
     seld_model.train()
     train_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
 
-    for i, (logmel_feat,onepeace_feat,  labels) in enumerate(dev_train_iterator):
+    for i, (logmel_feat,onepeace_feat, labels) in enumerate(dev_train_iterator):
+        
         optimizer.zero_grad()
         labels = labels.to(device)
         # Handling modalities
@@ -46,7 +47,6 @@ def train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss):
         loss.backward()
         optimizer.step()
         scheduler.step()
-
         # Track loss
         train_loss_per_epoch += loss.item()
 
@@ -54,7 +54,7 @@ def train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss):
     return avg_train_loss
 
 
-def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir, is_jackknife=False):
+def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir, is_jackknife=False): #here now
 
     seld_model.eval()
     val_loss_per_epoch = 0  # Track loss per iteration to average over the epoch.
@@ -78,11 +78,11 @@ def val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir
             val_loss_per_epoch += loss.item()
 
             # save predictions to csv files for metric calculations
-            utils.write_logits_to_dcase_format(logits, params, output_dir, dev_test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
+            utils.write_logits_to_dcase_format_doa(logits, params, output_dir, dev_test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
         avg_val_loss = val_loss_per_epoch / len(dev_test_iterator)
 
         metric_scores = seld_metrics.get_SELD_Results(pred_files_path=os.path.join(output_dir, 'dev-test'), is_jackknife=is_jackknife)
-
+        
         return avg_val_loss, metric_scores
 
 
@@ -104,12 +104,13 @@ def main():
     dev_test_iterator = DataLoader(dataset=dev_test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
 
     # create model, optimizer, loss and metrics
-    seld_model = SED_SDE_6(in_channel=6, in_dim=64).to(device)
+    seld_model = SED_DOA_6(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
-
-    seld_loss = SedSdeLoss().to(device)
+    seld_loss = SedDoaLoss().to(device)
+    
     total_steps = len(dev_train_dataset)// params['batch_size'] * params['nb_epochs']
-   
+    # print(total_steps)
+    # print(len(dev_train_dataset))
     warmup_steps = int(total_steps*0.1)
     hold_steps = int(total_steps*0.6)
     decay_steps = int(total_steps*0.3)
@@ -120,20 +121,19 @@ def main():
     start_epoch = 0
     best_f_score = float('-inf')
     if restore_from_checkpoint:
-        print('Loading model weights and optimizer state dict from initial checkpoint...')
-        model_ckpt = torch.load(os.path.join(initial_checkpoint_path, 'best_model.pth'), map_location=device, weights_only=False)
-        filtered_state_dict = {
+            print('Loading model weights and optimizer state dict from initial checkpoint...')
+            model_ckpt = torch.load(os.path.join(initial_checkpoint_path, 'best_model.pth'), map_location=device, weights_only=False)
+            filtered_state_dict = {
     k: v for k, v in model_ckpt['seld_model'].items()
     if 'resnet' in k and k != 'resnet.conv1.weight'
 }
-        seld_model.load_state_dict(filtered_state_dict, strict=False)
-
+            seld_model.load_state_dict(filtered_state_dict, strict=False)
     for epoch in tqdm(range(start_epoch, params['nb_epochs'])):
         # ------------- Training -------------- #
-        avg_train_loss = train_epoch(seld_model, dev_train_iterator, optimizer, scheduler,seld_loss)
+        avg_train_loss = train_epoch(seld_model, dev_train_iterator, optimizer, scheduler, seld_loss)
         # -------------  Validation -------------- #
         avg_val_loss, metric_scores = val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir)
-        val_f, val_dist_error, val_rel_dist_error, val_onscreen_acc, class_wise_scr = metric_scores
+        val_f, val_ang_error, val_onscreen_acc, class_wise_scr = metric_scores
         # ------------- Log losses and metrics ------------- #
 
         print(
@@ -141,15 +141,15 @@ def main():
             f"Train Loss: {avg_train_loss:.2f} | "
             f"Val Loss: {avg_val_loss:.2f} | "
             f"F-score: {val_f * 100:.2f} | "
-            f"Dist Err: {val_dist_error:.2f} | "
-            f"Rel Dist Err: {val_rel_dist_error:.2f}" +
+            f"Ang Err: {val_ang_error:.2f} | "
+             +
             (f" | On-Screen Acc: {val_onscreen_acc:.2f}" if params['modality'] == 'audio_visual' else "")
         )
         # ------------- Save model if validation f score improves -------------#
         if val_f >= best_f_score:
             best_f_score = val_f
             net_save = {'seld_model': seld_model.state_dict(), 'opt': optimizer.state_dict(), 'epoch': epoch,
-                        'best_f_score': best_f_score, 'best_rel_dist_err': val_rel_dist_error}
+                        'best_f_score': best_f_score, 'best_ang_err': val_ang_error}
             if params['modality'] == 'audio_visual':
                 net_save['best_onscreen_acc'] = val_onscreen_acc
             torch.save(net_save, checkpoints_folder + "/best_model.pth")
@@ -159,13 +159,16 @@ def main():
     seld_model.load_state_dict(best_model_ckpt['seld_model'])
     use_jackknife = params['use_jackknife']
     test_loss, test_metric_scores = val_epoch(seld_model, dev_test_iterator, seld_loss, seld_metrics, output_dir, is_jackknife=use_jackknife)
-    test_f, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr = test_metric_scores
-    utils.print_results_sde(test_f, test_dist_error, test_rel_dist_error, test_onscreen_acc, class_wise_scr, params)
+    test_f, test_ang_error, test_onscreen_acc, class_wise_scr = test_metric_scores
+    utils.print_results_doa(test_f, test_ang_error, test_onscreen_acc, class_wise_scr, params)
 
 
 if __name__ == '__main__':
 
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     restore_from_checkpoint = True
-    initial_checkpoint_path = '/home/var/Desktop/Mohor/DCASE2025_Nercslip_op/SDE_Pre'
+    initial_checkpoint_path = '/home/var/Desktop/Mohor/DCASE2025_Nercslip_op/DOA_Pre_noEle'
+
+  
     main()
+

@@ -15,8 +15,8 @@ params = {
     'net_type': 'SELDnet',
 
     # data params
-    'root_dir': '/home/var/Desktop/Mohor/DCASE2025_Nercslip/DCASE2025_SELD_dataset',  # parent directory containing the audio, video and labels directory
-    'feat_dir': '/home/var/Desktop/Mohor/DCASE2025_Nercslip/DCASE2025_SELD_dataset/features',  # store extracted features here
+    'root_dir': '/home/var/Desktop/Mohor/15_DCASE2025_Nercslip_op/DCASE2025_SELD_dataset',  # parent directory containing the audio, video and labels directory
+    'feat_dir': '/home/var/Desktop/Mohor/15_DCASE2025_Nercslip_op/DCASE2025_SELD_dataset/features',  # store extracted features here
 
     'log_dir': 'logs_sde',  # save all logs here like loss and metrics
     'checkpoints_dir': 'checkpoints_sde',  # save trained model checkpoints and config
@@ -41,7 +41,7 @@ params = {
 
     # training params
     'nb_epochs': 300,
-    'batch_size': 128,
+    'batch_size': 32,
     'nb_workers': 0,
     'shuffle': True,
 

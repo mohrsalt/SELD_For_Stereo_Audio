@@ -11,7 +11,7 @@ Date: January 2025
 import os.path
 import torch
 from parameters_seddoa import params
-from models.model import SED_DOA_2
+from models.model import SED_DOA_3
 from loss import SedDoaLoss
 from metrics_seddoa import ComputeSELDResults
 from data_generator import DataGenerator
@@ -104,11 +104,12 @@ def main():
     dev_test_iterator = DataLoader(dataset=dev_test_dataset, batch_size=params['batch_size'], num_workers=params['nb_workers'], shuffle=False, drop_last=False)
 
     # create model, optimizer, loss and metrics
-    seld_model = SED_DOA_2(in_channel=6, in_dim=64).to(device)
+    seld_model = SED_DOA_3(in_channel=6, in_dim=64).to(device)
     optimizer = torch.optim.Adam(params=seld_model.parameters(), lr=params['learning_rate'], weight_decay=params['weight_decay'])
     seld_loss = SedDoaLoss().to(device)
     
     total_steps = len(dev_train_dataset)// params['batch_size'] * params['nb_epochs']
+   
     # print(total_steps)
     # print(len(dev_train_dataset))
     warmup_steps = int(total_steps*0.1)
@@ -157,6 +158,6 @@ def main():
 
 
 if __name__ == '__main__':
-    device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     main()
 

@@ -8,7 +8,7 @@ Date: March 2025
 """
 
 import utils
-from models.model import SED_DOA
+from models.model import SED_DOA_3
 import pickle
 import os
 from parameters_seddoa import params
@@ -35,7 +35,7 @@ def run_inference():
     feature_extractor.extract_features(split='dev')
     feature_extractor.extract_labels(split='dev')
 
-    seld_model = SED_DOA(in_channel=6, in_dim=64).to(device)
+    seld_model = SED_DOA_3(in_channel=6, in_dim=64).to(device)
     model_ckpt = torch.load(os.path.join(model_dir, 'best_model.pth'), map_location=device, weights_only=False)
     seld_model.load_state_dict(model_ckpt['seld_model']) ##inves
     print(params['root_dir'])
@@ -46,18 +46,18 @@ def run_inference():
 
     seld_model.eval()
     with torch.no_grad():
-        for j, (input_features, labels) in enumerate(test_iterator):
+        for j, (logmel_feat,onepeace_feat, labels) in enumerate(test_iterator):
             labels = labels.to(device)
             # Handling modalities
             if params['modality'] == 'audio':
-                audio_features, video_features = input_features.to(device), None
+                logmel_feat, onepeace_feat,video_features = logmel_feat.to(device),onepeace_feat.to(device), None
             elif params['modality'] == 'audio_visual':
-                audio_features, video_features = input_features[0].to(device), input_features[1].to(device)
+                logmel_feat, onepeace_feat, video_features = logmel_feat.to(device),onepeace_feat.to(device), None
             else:
                 raise AssertionError("Modality should be one of 'audio' or 'audio_visual'.")
 
             # Forward pass
-            logits = seld_model(audio_features)
+            logits = seld_model(logmel_feat, onepeace_feat)
 
             # save predictions to csv files for metric calculations
             utils.write_logits_to_dcase_format_doa(logits, params, output_dir, test_iterator.dataset.label_files[j * params['batch_size']: (j + 1) * params['batch_size']])
@@ -68,6 +68,6 @@ def run_inference():
 
 
 if __name__ == '__main__':
-    model_dir = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250429_102618"
-    device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
+    model_dir = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/OnePeaceBoth62"
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     run_inference()

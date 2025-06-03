@@ -8,7 +8,8 @@ Date: March 2025
 """
 
 import utils
-from models.model import SED_DOA,SED_SDE
+from models.model import SED_DOA_6
+from models.model import SED_SDE
 import pickle
 import os
 from parameters import params
@@ -42,12 +43,13 @@ def run_inference():
     feature_extractor.extract_features(split='dev')
     feature_extractor.extract_labels(split='dev')
 
-    doa_model = SED_DOA(in_channel=6, in_dim=64).to(device)
+    doa_model = SED_DOA_6(in_channel=6, in_dim=64).to(device)
     sed_model = SED_SDE(in_channel=6, in_dim=64).to(device)
     model_ckpt_sde = torch.load(os.path.join(model_dir_sde, 'best_model.pth'), map_location=device, weights_only=False)
     model_ckpt_doa = torch.load(os.path.join(model_dir_doa, 'best_model.pth'), map_location=device, weights_only=False)
-    sed_model.load_state_dict(model_ckpt_sde['seld_model'])
     doa_model.load_state_dict(model_ckpt_doa['seld_model'])
+    sed_model.load_state_dict(model_ckpt_sde['seld_model'])
+    
     print(params['root_dir'])
     seld_metrics = ComputeSELDResults(params=params, ref_files_folder=os.path.join(params['root_dir'], 'metadata_dev'))
 
@@ -87,10 +89,9 @@ def run_inference():
 
 
 if __name__ == '__main__':
-    model_dir_sde = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_sde/SELDnet_audio_singleACCDOA_20250501_082359"
-    #model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250508_114732"#onepeace /home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250506_222215
-    model_dir_doa = "/home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250506_222215"
-    print(torch.cuda.is_available())
+    model_dir_sde = "/home/var/Desktop/Mohor/15_DCASE2025_Nercslip_op/checkpoints_sde/BestSdeModel"
+    #onepeace /home/var/Desktop/Mohor/DCASE2025_Nercslip/checkpoints_doa/SELDnet_audio_singleACCDOA_20250506_222215..this is the one which gives 47.7....and first may both checkpoints are all 6 features trained with extra data ones which gives 46.3 final result
+    model_dir_doa = "/home/var/Desktop/Mohor/15_DCASE2025_Nercslip_op/checkpoints_doa/OneP8_2_48_2_Best"
     device =torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     print(device)
