@@ -72,31 +72,6 @@ class DataGenerator(Dataset):
                 labels = labels[:, :-self.params['nb_classes']]
             return logmel_feat,onepeace_feat, labels
         
-    # def __getitem__(self, item):
-    #     """
-    #     Returns the data for a given index.
-    #     Args:
-    #         item (int): Index of the data.
-    #     Returns:
-    #         tuple: A tuple containing audio features, video_features (for audio_visual modality), and labels.
-    #     """
-    #     audio_file = self.audio_files[item]
-    #     label_file = self.label_files[item]
-    #     audio_features = torch.load(audio_file)
-    #     labels = torch.load(label_file)
-
-
-    #     if self.modality == 'audio_visual':
-    #         video_file = self.video_files[item]
-    #         video_features = torch.load(video_file)
-    #         return (audio_features, video_features), labels
-    #     else:
-    #         # no need for on/off labels for audio only task
-    #         if self.params['multiACCDOA']:
-    #             labels = labels[:, :, :-1, :]
-    #         else:
-    #             labels = labels[:, :-self.params['nb_classes']]
-    #         return audio_features, labels
 
     def __len__(self):
         """

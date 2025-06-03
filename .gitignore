@@ -5,7 +5,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-checkpoints_*
+
 
 
 DCASE2025_SELD_dataset
