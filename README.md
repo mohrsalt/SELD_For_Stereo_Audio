@@ -118,7 +118,7 @@ This will generate **10,000 prediction CSV files** in the `outputs/` directory.
 
 ---
 
-## 📂 Feature Generation Note
+## 📂 Important Notes-: 
 
 1. A `features/` subdirectory will be automatically created within:
 
