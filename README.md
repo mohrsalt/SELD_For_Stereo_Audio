@@ -120,7 +120,7 @@ This will generate **10,000 prediction CSV files** in the `outputs/` directory.
 
 ## 📂 Feature Generation Note
 
-A `features/` subdirectory will be automatically created within:
+1. A `features/` subdirectory will be automatically created within:
 
 ```
 DCASE2025_SELD_dataset/
@@ -128,3 +128,5 @@ DCASE2025_SELD_dataset/
 
 This will contain both **logmel** and **One-Peace** features.  
 ⏱️ Feature extraction for all 10K files takes approximately **5 hours**.
+
+2. The inference pipeline caters to a SED-DOA model architecture of 8-2 resnet-conformer with one-peace embeddings and SED-SDE model architecture of resnet-conformer with 8 conformer blocks without one-peace embeddings. To inference other model architectures like those with varying number of conformer blocks or with/without one-peace embeddings, please introduce new model classes in models/model.py file, import them into the inference_evaldataset_submission.py file, and change model call function name and arguments accordingly in that file.
